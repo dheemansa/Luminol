@@ -1,0 +1,51 @@
+[global]
+# The command used to set the wallpaper.
+# This is just an example, change it to your wallpaper utility.
+wallpaper-command = "swww img {}"
+# Theme can be "auto", "light", or "dark".
+theme-type = "auto"
+# Commands to execute after a new theme is generated.
+reload-commands = [
+    "notify-send reload1",
+    "notify-send reload2",
+]
+
+[app1]
+enabled = true
+file = "~/test/colors.css"
+syntax = "@define-color {name} {color};"
+color_format = "hex6"
+
+[app2]
+enabled = true
+color_format = "rgba"
+remap-colors = true #<-- Note: true
+file = "~/test/theme.conf"
+syntax = "set {name} {color}"
+
+[app2.colors]
+background = "bg-primary"
+foreground = "text-primary"
+accent = ["accent-primary", "brightness=1.1", "saturation=1.2"]
+faded_text = ["text-secondary", "opacity=0.8"]
+
+# --- App 3: Template-based ---
+# This app uses a template file and maps colors to placeholders.
+[app3]
+enabled = true
+template = "app3.tpl" # This file must exist in your config's templates/ folder
+file = "~/test/theme"
+syntax = "{placeholder}"
+
+[app3.placeholders]
+main_bg = "bg-primary"
+main_fg = "text-primary"
+urgent_bg = "error-color"
+border_focus = "accent-primary"
+
+# --- App 4: Disabled ---
+# This app will be completely ignored by Luminol.
+[app4]
+enabled = false
+file = "/should/be/ignored"
+syntax = "ignored"
