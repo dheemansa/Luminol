@@ -9,7 +9,7 @@ To enable template mode for an application, you must specify the `template` key 
 ```toml
 [dunst]
 enabled = true
-color_format = "hex6"
+color-format = "hex6"
 file = "~/.config/dunst/dunstrc" # Final output path
 syntax = "{placeholder}" # Must be set to {placeholder} for templates
 template = "dunst.template" # Name of the template file

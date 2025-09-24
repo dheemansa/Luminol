@@ -26,7 +26,7 @@ reload-commands = [ # Optional
 
 [hyprland]
 enabled = true
-color_format = "rgba"
+color-format = "rgba"
 file = "~/.config/hypr/colors.conf"
 syntax = "${name} = {color}"
 remap-colors = true # Enable custom color mapping
@@ -38,14 +38,14 @@ inactive-border = ["bg-tertiary", "brightness=0.8"] # Remap with a transformatio
 
 [rofi]
 enabled = true
-color_format = "hex8"
+color-format = "hex8"
 # remap-colors is false by default, so it will get all semantic colors.
 file = "~/.config/rofi/colors.rasi"
 syntax = "*{{name}: {color};}"
 
 [dunst]
 enabled = true
-color_format = "hex6"
+color-format = "hex6"
 file = "~/.config/dunst/dunstrc"
 syntax = "{placeholder}" # This app uses a template file
 template = "dunst.template"
@@ -61,13 +61,13 @@ error = "error-color"
 
 The `syntax` key is a template for each line in the generated file. Luminol replaces two special placeholders:
 -   `{name}`: This is replaced by the color's name (e.g., `bg-primary`, or a custom name like `theme-background` if you are using `remap-colors`).
--   `{color}`: This is replaced by the final, calculated color value in the specified `color_format`.
+-   `{color}`: This is replaced by the final, calculated color value in the specified `color-format`.
 
 **Example:**
 Given this configuration:
 ```toml
 [rofi]
-color_format = "hex8"
+color-format = "hex8"
 syntax = "*{{name}: {color};}"
 ```
 Luminol will generate lines like:
@@ -78,7 +78,7 @@ Luminol will generate lines like:
 
 **Key Parameters for each application:**
 -   `enabled`: (Required) `true` or `false`.
--   `color_format`: (Required) The output format for colors (e.g., `hex8`, `rgba`).
+-   `color-format`: (Required) The output format for colors (e.g., `hex8`, `rgba`).
 -   `file`: (Required) The absolute path to the output file.
 -   `syntax`: (Required) A pattern that defines how each color variable is written to the file.
 -   `remap-colors`: (Optional) `true` or `false`. Defaults to `false`.
@@ -202,7 +202,7 @@ Adjusts color contrast relative to typical backgrounds. Values range from 0.0 to
 
 ## Supported Color Formats
 
-Luminol can output colors in various formats, specified by the `color_format` key:
+Luminol can output colors in various formats, specified by the `color-format` key:
 
 ```python
 {

@@ -14,11 +14,11 @@ reload-commands = [
 enabled = true
 file = "~/test/colors.css"
 syntax = "@define-color {name} {color};"
-color_format = "hex6"
+color-format = "hex6"
 
 [app2]
 enabled = true
-color_format = "rgba"
+color-format = "rgba"
 remap-colors = true #<-- Note: true
 file = "~/test/theme.conf"
 syntax = "set {name} {color}"
