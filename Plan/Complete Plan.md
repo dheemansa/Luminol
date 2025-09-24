@@ -590,7 +590,7 @@ enabled = true                  #needs to be defined
 remap-colors = true             #optional default = false
 file = "~/.config/waybar/colors.css" #needs to be defined cant be empty
 syntax = "@define-color {name} {color};" #needs to be defined
-color_format = "rgba"
+color-format = "rgba"
 
 [waybar.colors]                 #needs to be defined when remap-colors is true
 theme-background = "bg-primary"
@@ -599,7 +599,7 @@ theme-accent     = "accent-primary"
 
 [hyprland]
 enabled = true
-color_format = "rgba"
+color-format = "rgba"
 file = "~/.config/hypr/colors.conf"
 syntax = "${name} = {color}"
 remap-colors = true
@@ -615,11 +615,11 @@ enabled = true
 # remap-colors not defined → defaults to false
 file = "~/.config/rofi/colors.rasi"
 syntax = "*{{name}}: {color};"
-color_format = "hex8"
+color-format = "hex8"
 
 [gtk]
 enabled = true
-color_format = "hex6"
+color-format = "hex6"
 file = "~/.config/gtk-3.0/colors.css"
 syntax = "@define-color {name} {color};"
 

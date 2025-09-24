@@ -12,7 +12,7 @@ This document outlines the phased implementation approach for Luminol, starting 
 **Objectives:**
 - Parse TOML configuration files
 - Load configuration from `$XDG_CONFIG_HOME/luminol/config.toml` (falling back to `$HOME/.config/luminol/config.toml`)
-- Validate configuration structure
+- Validate configuration structure make sure correct type and structure is used
 - Handle missing configuration gracefully
 
 **Implementation Tasks:**
