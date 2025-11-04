@@ -1,19 +1,25 @@
-from typing import Dict, Tuple
 from pathlib import Path
 import time
 import logging
+from .luma import luma
 
 
 def get_colors(
     image_path: str, num_colors: int = 8, preset: str = "balanced"
-) -> Dict[Tuple[int, int, int], float]:
+) -> dict[tuple[int, int, int], dict[str, float]]:
+    """
+    Extract dominant colors from an image.
+
+    Returns:
+        dict: { (r,g,b): {"coverage": float, "luma": float} }
+    """
     SUPPORTED_PRESET = ["high", "balanced", "fast"]
     if preset not in SUPPORTED_PRESET:
         raise ValueError(
             f"{preset} is not a valid Preset. Select something from {', '.join(SUPPORTED_PRESET)}"
         )
 
-    resize_dim: Tuple[int, int]
+    resize_dim: tuple[int, int]
     pixel_sample_count: int
     kmeans_iteration: int
 
@@ -26,6 +32,7 @@ def get_colors(
         resize_dim = (300, 300)
         pixel_sample_count = 10000
         kmeans_iteration = 20
+
     else:  # balanced
         resize_dim = (150, 150)
         pixel_sample_count = 4000
@@ -38,17 +45,27 @@ def get_colors(
         pixel_sample_count=pixel_sample_count,
         kmeans_iteration=kmeans_iteration,
     )
-    return extracted_colors
+    # Transform to your desired structure
+
+    extract_start_time = time.perf_counter()
+    result = {}
+    for rgb, coverage in extracted_colors.items():
+        luma_value = luma(*rgb, quality="high")
+        result[rgb] = {"coverage": coverage, "luma": luma_value}
+    extract_end_time = time.perf_counter()
+    logging.info(f"Color Data took {extract_end_time - extract_start_time}")
+
+    return result
 
 
 def extract_colors(
     image_path: str | Path,
     num_colors: int = 8,
-    resize_dim: Tuple = (300, 300),
+    resize_dim: tuple = (300, 300),
     pixel_sample_count: int = 4000,
     kmeans_iteration: int = 10,
     validate_unique_colors: bool = False,
-) -> Dict[Tuple[int, int, int], float]:
+) -> dict[tuple[int, int, int], float]:
     """
     Extract dominant colors using K-means clustering algorithm.
 
@@ -56,7 +73,7 @@ def extract_colors(
         num_colors: Number of colors to extract.
 
     Returns:
-        Dict[Tuple[int, int, int], float]: Dictionary mapping RGB color tuples to coverage percentages.
+        dict[tuple[int, int, int], float]: dictionary mapping RGB color tuples to coverage percentages.
                                             Format: (255, 128, 0) -> 0.45
     """
     start = time.perf_counter()
@@ -73,10 +90,17 @@ def extract_colors(
         with Image.open(image_path) as img:
             # Convert to RGB
             if img.mode != "RGB":
+                start = time.perf_counter()
                 img = img.convert("RGB")
+                end = time.perf_counter()
+                logging.info(f"Image Convert to Rgb Colorspace time: {end - start}")
 
             # Resize image based on quality setting
+
+            start = time.perf_counter()
             img.thumbnail(resize_dim, Image.Resampling.LANCZOS)
+            end = time.perf_counter()
+            logging.info(f"Resize time: {end - start}")
 
             # Convert to numpy array
             img_array = np.array(img, dtype=np.float32)
@@ -89,12 +113,6 @@ def extract_colors(
                 num_colors = min(num_colors, unique_colors, len(pixels))
             else:
                 num_colors = min(num_colors, len(pixels))
-
-            # NOTE: might think about this in the future
-            # Only validate if image is very small
-            # if len(pixels) < num_colors * 10:  # Rule of thumb
-            #     unique_colors = len(np.unique(pixels, axis=0))
-            #     num_colors = min(num_colors, unique_colors)
 
             if num_colors < 1:
                 raise ValueError("Image must contain at least one color")

@@ -35,9 +35,11 @@ class LuminolConfigGlobal:
     def __init__(self, config: dict[str, Any], validate: bool = True):
         self.global_config: dict = config.get("global", {})
 
-        self.wallpaper_commands: str = self.global_config.get("wallpaper-command", "")
+        self.wallpaper_command: str = self.global_config.get("wallpaper-command", "")
         self.reload_commands: list = self.global_config.get("reload-commands", [])
         self.theme_type: str = self.global_config.get("theme-type", "auto")
+        self.use_shell: bool = self.global_config.get("use-shell", False)
+        self.log_output: bool = self.global_config.get("log-output", False)
 
     def validate(self):
         valid: bool = validate_global_config(self.global_config)
@@ -46,12 +48,6 @@ class LuminolConfigGlobal:
             raise InvalidConfigError(
                 "Invalid global configuration. Please review the errors above."
             )
-            # raise SystemExit(
-            #     AnsiColors.colorize(
-            #         "Invalid global configuration. Please review the errors above.",
-            #         AnsiColors.ERROR,
-            #     )
-            # )
 
 
 class LuminolConfigApplication:
@@ -70,9 +66,3 @@ class LuminolConfigApplication:
             raise InvalidConfigError(
                 "Invalid application configuration. Please review the errors above."
             )
-            # raise SystemExit(
-            #     AnsiColors.colorize(
-            #         "Invalid application configuration. Please review the errors above.",
-            #         AnsiColors.ERROR,
-            #     )
-            # )
