@@ -71,6 +71,8 @@ def validate_global_config(global_settings: dict) -> bool:
         "wallpaper-command": str,
         "theme-type": str,
         "reload-commands": list,
+        "use-shell": bool,
+        "log-output": bool,
     }
     global_supported_options = set(GLOBAL_OPTION_SCHEMA.keys())
 

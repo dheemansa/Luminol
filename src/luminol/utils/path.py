@@ -5,35 +5,12 @@ import shutil
 from typing import Optional
 
 
-def _expand_path(path_str: str) -> Path:
+def _expand_path(path_str: str | Path) -> Path:
     """Expand ~, ~user, and environment variables."""
     # Order: expanduser first, then expandvars
     expanded = os.path.expanduser(path_str)
     expanded = os.path.expandvars(expanded)
     return Path(expanded)
-
-
-def _home_dir() -> Path:
-    # FIXME this is the wrong implemention, we are trying to get XDG Config home for Home path
-    # FIXME fix this by using hard coded logic in the LuminolPath class instead of using a function to get the home path
-
-    # TODO: Remove this function and implement XDG Base Directory logic directly in LuminolPath
-    # - luminol_path: check XDG_CONFIG_HOME/luminol, fallback to ~/.config/luminol
-    # - cache_path: check XDG_CACHE_HOME/luminol, fallback to ~/.cache/luminol
-    xdg_config_home_env = os.getenv("XDG_CONFIG_HOME")
-    if xdg_config_home_env:
-        xdg_config_home = Path(xdg_config_home_env)
-        if xdg_config_home.is_dir():
-            logging.debug(f"Using {xdg_config_home}")
-            return xdg_config_home
-        logging.debug(f"{xdg_config_home} not found")
-
-    home_path = Path.home()
-    if home_path.is_dir():
-        logging.debug(f"Using {home_path}")
-        return home_path
-
-    raise FileNotFoundError("$XDG_CONFIG_HOME or $HOME: no such directory exists")
 
 
 class LuminolPath:
@@ -45,9 +22,9 @@ class LuminolPath:
         cache_dir: Optional[str] = None,
         config_file_path: Optional[str] = None,
     ) -> None:
-        self._config_dir: Path | None = None
-        self._cache_dir: Path | None = None
-        self._config_file_path: Path | None = None
+        self._config_dir = None
+        self._cache_dir = None
+        self._config_file_path = None
 
         if config_dir is not None:
             self._config_dir: Path = _expand_path(config_dir)

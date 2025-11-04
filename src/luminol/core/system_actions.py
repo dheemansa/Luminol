@@ -1,101 +1,139 @@
 import logging
-from typing import Optional
 import subprocess
 import shlex
 from pathlib import Path
+from datetime import datetime
 from ..exceptions.exceptions import WallpaperSetError
 from ..cli.term_colors import AnsiColors
+from ..utils.path import _expand_path
 
 ERR = AnsiColors.ERROR
 RESET = AnsiColors.RESET
 
-# COMMAND EXECUTIONS
 
+def _run_detached_command(
+    command: str, log_dir: str | Path | None, use_shell: bool = False
+) -> None:
+    if not command:
+        logging.warning("Received an empty command.")
+        return
 
-def apply_wallpaper(wallpaper_set_command: str, image_path: str | Path = "") -> None:
-    """
-    Apply a wallpaper by running a system command.
+    command_args_list: list = shlex.split(command)
+    logging.info(f"Executing command: '{command}'")
 
-    Replaces the `{wallpaper_path}` placeholder with the given image path
-    and executes the command using subprocess without a shell.
+    if not log_dir:
+        try:
+            if use_shell is False:
+                subprocess.Popen(command_args_list, start_new_session=True)
+            else:
+                subprocess.Popen(command, shell=True, start_new_session=True)
 
-    Note:
-        Shell features like pipes (|), redirects (> <), or env variables will NOT work, as shell=True is not used.
-
-    Args:
-        wallpaper_set_command (str): Command to set wallpaper, optionally with `{wallpaper_path}` placeholder.
-        image_path (str | Path): Path to the wallpaper image.
-
-    Raises:
-        WallpaperSetError: If the command fails, is not found, or another error occurs.
-
-    Examples:
-        With placeholder:
-            wallpaper_set_command = "swww img {wallpaper_path}"
-            image_path = "/home/user/Pictures/wallpaper.png"
-            apply_wallpaper(wallpaper_set_command, image_path)
-            # Executes: swww img /home/user/Pictures/wallpaper.png
-
-        Without placeholder:
-            wallpaper_set_command = "swww img /home/user/Pictures/wallpaper.png"
-            apply_wallpaper(wallpaper_set_command, image_path)
-    """
-
-    # replace the placeholder in config
-    final_command = wallpaper_set_command.replace("{wallpaper_path}", str(image_path))
-    command_args: list = shlex.split(final_command)
+            logging.info(f"Successfully launched '{command}' without logging.")
+        except OSError as e:
+            logging.error(f"Failed to launch '{command}': {e}")
+        return
 
     try:
-        logging.debug(f"Executing '{final_command}' for wallpaper")
-        command_output = subprocess.run(
-            command_args, capture_output=True, text=True, check=False
-        )
+        expanded_log_dir = _expand_path(log_dir)
 
-        if command_output.returncode != 0:
-            raise WallpaperSetError(
-                f"Error occured while executing command: '{ERR}{final_command}{RESET}'"
-                f"\n{command_output.stderr}"
+        expanded_log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = expanded_log_dir / f"{command_args_list[0]}.log"
+
+        log_file = open(log_path, "w")
+
+        log_file.write(
+            f"****[Date: {datetime.now().date()}][Time: {datetime.now().strftime('%H:%M:%S')}]****\n\n"
+        )
+        log_file.write(f"Command: {command}\n\n")
+        log_file.write(f"{'*' * 50}  Logging Started  {'*' * 50}\n\n")
+        if use_shell is False:
+            subprocess.Popen(
+                command_args_list,
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        else:
+            subprocess.Popen(
+                command,
+                shell=True,
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
             )
 
-    except FileNotFoundError:
-        raise WallpaperSetError(
-            f"Command not found: '{ERR}{command_args[0]}{RESET}' for applying wallpaper"
+        log_file.close()
+
+        logging.info(f"Successfully launched '{command}' with logging to {log_path}")
+    except OSError as e:
+        logging.error(f"Failed to launch '{command}': {e}")
+    except Exception as e:
+        logging.error(
+            f"An unexpected error occurred while trying to run '{command}': {e}"
         )
+
+
+# HACK improve these functions using async functions might work
+def apply_wallpaper(
+    wallpaper_set_command: str,
+    image_path: str | Path,
+    log_dir: str | Path | None = None,
+) -> None:
+    """
+    Apply a wallpaper by executing the configured command.
+
+    Replaces `{wallpaper_path}` in the command with the actual image path,
+    then launches it.
+
+    Args:
+        wallpaper_set_command (str): Command to set wallpaper with `{wallpaper_path}` placeholder.
+        image_path (str | Path): Path to the wallpaper image.
+        log_dir (str | Path): Path to the log directory
+
+    Raises:
+        WallpaperSetError: If the wallpaper command is not found or fails to start.
+    """
+    final_command = wallpaper_set_command.replace("{wallpaper_path}", str(image_path))
+
+    logging.debug(f"Executing wallpaper command: {final_command}")
+
+    try:
+        _run_detached_command(command=final_command, log_dir=log_dir, use_shell=False)
 
     except Exception as e:
-        raise WallpaperSetError(
-            f"Unexpected error occured while executing wallpaper command: \n{e}"
-        )
-
-    if command_output.stdout:
-        logging.info(command_output.stdout)
-    logging.info(f"Wallpaper Applied Successfully")
+        raise WallpaperSetError(f"Failed to launch wallpaper command: {e}")
 
 
-def run_reload_commands(reload_commands: list[str]) -> None:
+def run_reload_commands(
+    reload_commands: list[str],
+    use_shell: bool = False,
+    log_dir: str | Path | None = None,
+) -> None:
     """
-    Executes a list configured reload commands sequentially.
+    Execute a list of reload commands sequentially.
 
-    Example:
-        reload_commands: list = ["command1", "command2 --arg1 --arg2"]
+    Each command is started using subprocess.Popen().
+    If verbose=True, waits for completion and shows output. Otherwise, fire-and-forget.
+
+    Args:
+        reload_commands (list[str]): Commands to execute.
+        use_shell (bool): If True, enables shell features (pipes, ||, etc.).
+                          Avoid using with untrusted input for security reasons.
+        verbose (bool): If True, waits for command completion and shows output. If False, fire-and-forget.
     """
     for cmd in reload_commands:
         logging.debug(f"Running reload command: {cmd}")
-        args = shlex.split(cmd)
+        # use verbose=False (fire-and-forget) because there might be a blocking command like waybar or such
+        # which will cause luminol to hang, only use verbose=True to understand what went wrong but this will
+        # kill the blocking process
         try:
-            result = subprocess.run(args, capture_output=True, text=True, check=False)
-
-            if result.returncode != 0:
-                logging.warning(f"Reload command failed ({cmd})\n{result.stderr}")
-            elif result.stdout:
-                logging.debug(result.stdout)
-
-        except FileNotFoundError:
-            logging.error(f"Command not found: {args[0]}")
-
+            if use_shell:
+                _run_detached_command(command=cmd, log_dir=log_dir, use_shell=True)
+            else:
+                _run_detached_command(command=cmd, log_dir=log_dir, use_shell=False)
         except Exception as e:
-            logging.error(f"Unexpected error running '{cmd}': {e}")
+            logging.error(
+                f"An unexpected error occurred while trying to run '{cmd}': {e}"
+            )
 
     logging.info("All reload commands executed.")
-
-
