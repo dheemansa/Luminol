@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import sys
 
 
 ##TODO validate image using imghdr for corrupt files
@@ -38,14 +39,18 @@ def parse_arguments():
     parser.add_argument(
         "-t",
         "--theme",
-        choices=["dark", "light"],
+        choices=["dark", "auto", "light"],
         help="Force a specific theme type, overriding the value in the config file.",
     )
     parser.add_argument(
         "-q",
         "--quality",
+        # default="balanced",
+        # NOTE:The quality flag default is not set here to avoid argparse treating it as user-provided.
+        # This prevents commands unrelated to image processing (like --validate) from
+        # incorrectly triggering dependency errors due to an implicit "balanced" default.
+        # Instead, the default is applied later in main() after parsing.
         choices=["fast", "balanced", "high"],
-        default="balanced",
         help="Adjust color extraction quality (higher is slower but more accurate).",
     )
 
@@ -73,6 +78,11 @@ def parse_arguments():
         action="store_true",
         help="Validate the configuration file and exit. All other flags are ignored, except for --verbose.",
     )
+
+    # show help if no arguments are passed
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
     args = parser.parse_args()
 
