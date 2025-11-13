@@ -1,4 +1,3 @@
-from luminol.config.validate import RESET
 from ..cli.term_colors import AnsiColors
 
 ERR = AnsiColors.ERROR
