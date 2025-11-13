@@ -1,24 +1,15 @@
 import time
-
-import_start_time = time.perf_counter()
 import logging
+from .exceptions.exceptions import InvalidConfigError
+from .cli.term_colors import AnsiColors
 from .utils.logging_config import configure_logging
 from .cli.cli_parser import parse_arguments
-from .config.parser import (
-    LuminolConfigGlobal,
-    LuminolConfigApplication,
-    load_config,
-)
-from .cli.term_colors import AnsiColors
-from .color.extraction import (
-    get_colors,
-)
-from .utils.path import LuminolPath
+from .config.parser import Config, load_config
+from .color.extraction import get_colors
+from .utils.path import get_cache_dir, get_luminol_dir, clear_directory
 from .core.system_actions import apply_wallpaper, run_reload_commands
-from .color.assign import decide_theme
+from .color.assign import assign_color
 
-import_end_time = time.perf_counter()
-print(f"Import Time {import_end_time - import_start_time}")
 
 # TODO later use Luminol package to create the cli
 
@@ -31,13 +22,20 @@ def main():
     # if args.verbvose is true, then enable verbose logging
     configure_logging(verbose=args.verbose)
 
-    verbose_flag: bool = args.verbose
+    # verbose_flag: bool = args.verbose
     image_path: str = args.image
-    theme_type_flag: str = args.theme
-    quality_flag: str = args.quality
+    theme_type_flag: str | None = args.theme
+    quality_flag: str | None = args.quality
     preview_flag: bool = args.preview
     validate_flag: bool = args.validate
     dry_run_flag: bool = args.dry_run
+
+    # NOTE: The quality flag is handled manually instead of setting a default in argparse.
+    # This ensures that commands unrelated to image processing (like --validate)
+    # don’t incorrectly trigger validation errors due to an implicit "balanced" default.
+
+    if quality_flag is None:
+        quality_flag = "balanced"
 
     if preview_flag is True:
         extract_start_time = time.perf_counter()
@@ -47,73 +45,45 @@ def main():
         )
 
         for col in raw_colors:
-            r, g, b = col
-            ansi_color = AnsiColors.bg_rgb(r, g, b)
-            print(f"{ansi_color}rgb{col}{AnsiColors.RESET}")
+            print(col)
 
         extract_end_time = time.perf_counter()
 
         logging.info(f"Color Extraction took {extract_end_time - extract_start_time}")
 
-        return
+        raise SystemExit(0)
 
-    config_load_start_time = time.perf_counter()
-    default_paths = LuminolPath()
+    LUMINOL_CONFIG_DIR = get_luminol_dir()
+    LUMINOL_CACHE_DIR = get_cache_dir()
 
     try:
-        raw_config = load_config(config_file_path=default_paths.config_file_path)
-        global_config = LuminolConfigGlobal(raw_config)
-        app_config = LuminolConfigApplication(raw_config)
+        raw_config = load_config(config_file_path=LUMINOL_CONFIG_DIR / "config.toml")
+        config = Config(config_data=raw_config)
+    except InvalidConfigError as e:
+        print(f"\n{e}")
+        raise SystemExit(1)
 
-    except (FileNotFoundError, SystemExit) as e:
-        logging.critical(f"Failed to load configuration: {e}")
-        return
-    config_load_end_time = time.perf_counter()
-
-    logging.info(f"Config load took {config_load_end_time - config_load_start_time}")
-
-    # Validate Global
-    # initialise both as true
-    is_global_valid = True
-    is_app_config_valid = True
-
-    validation_start_time = time.perf_counter()
-    try:
-        global_config.validate()
     except Exception as e:
-        # if any exception is raised then the global config is invalid
-        is_global_valid = False
-        logging.error(e)
-    try:
-        app_config.validate()
-    except Exception as e:
-        # if any exception is raised then the application config is invalid
-        is_app_config_valid = False
-        logging.error(e)
-
-    validation_end_time = time.perf_counter()
-
-    logging.info(f"Validation took {validation_end_time - validation_start_time}")
-
-    # if any one of these if false(i.e config invalid) then terminate the program
-    if not (is_app_config_valid or is_global_valid):
-        return
+        logging.error(f"Failed to load configuration: {e}")
+        raise SystemExit(1)  # exit with exit code 1
 
     # if validation_flag is true then stop the program just after validation
     if validate_flag is True:
-        logging.warning("Configuration validation successful.")
-        return
+        print(
+            f"{AnsiColors.SUCCESS}✓ Configuration validation successful.{AnsiColors.RESET}"
+        )
+        raise SystemExit(0)
 
-    if global_config.log_output is True:
-        log_dir = default_paths.cache_path / "logs"
+    if config.global_settings.log_output is True:
+        log_dir = LUMINOL_CACHE_DIR / "logs"
     else:
         log_dir = None
 
     # if wallpaper-command is not set then skip execution of wallpaper command
-    if global_config.wallpaper_command:
+    if config.global_settings.wallpaper_command:
         try:
             apply_wallpaper(
-                wallpaper_set_command=global_config.wallpaper_command,
+                wallpaper_set_command=config.global_settings.wallpaper_command,
                 image_path=image_path,
                 log_dir=log_dir,
             )
@@ -122,27 +92,43 @@ def main():
             return
 
     extract_start_time = time.perf_counter()
-    raw_colors = get_colors(image_path=image_path, num_colors=8, preset=quality_flag)
-    print(decide_theme(raw_colors))
-    extract_end_time = time.perf_counter()
-    logging.info(f"Color Extraction took {extract_end_time - extract_start_time}")
 
-    sorted_color = sorted(raw_colors.items(), key=lambda item: item[1]["luma"])
-    sorted_color = [item[0] for item in sorted_color]
-    for col in sorted_color:
-        r, g, b = col
-        ansi_color = AnsiColors.bg_rgb(r, g, b)
-        print(
-            f"{ansi_color}rgb{col}{AnsiColors.RESET} Coverage {raw_colors[col]['coverage']} luma {raw_colors[col]['luma']:.2f}"
+    color_data = get_colors(
+        image_path=image_path, num_colors=8, preset=quality_flag, sort_by="luma"
+    )
+
+    for color in color_data:
+        print(color)
+
+    extract_end_time = time.perf_counter()
+    print(f"Color Extraction took {extract_end_time - extract_start_time}")
+
+    assign_start_time = time.perf_counter()
+
+    # clear cache
+    clear_directory(dir_path=LUMINOL_CACHE_DIR, recreate=True)
+
+    # if theme is set in cli then override the theme_type in config
+    if theme_type_flag is not None:
+        assign_color(color_data=color_data, theme_type=theme_type_flag)
+    else:
+        assign_color(
+            color_data=color_data, theme_type=config.global_settings.theme_type
         )
+
+    assign_end_time = time.perf_counter()
+    logging.warning(f"Color assign took {assign_end_time - assign_start_time}")
+
+    # TODO: create and save palette files to cache and use dry_run_flag and then copy files to specified directory
+    # TODO: also make a tty reload similar to pywall and also implement a config setting in config.toml to enable/disable tty-reload=false
 
     # NOTE: this will be the last step
     # if reload-command is not set then skip execution of reload command
-    if global_config.reload_commands:
+    if config.global_settings.reload_commands:
         try:
             run_reload_commands(
-                reload_commands=global_config.reload_commands,
-                use_shell=global_config.use_shell,
+                reload_commands=config.global_settings.reload_commands,
+                use_shell=config.global_settings.use_shell,
                 log_dir=log_dir,
             )
 
@@ -150,4 +136,6 @@ def main():
             logging.error(e)
             return
 
-    print("TODO: Main logic - generate colors, write files, run reload commands.")
+
+if __name__ == "__main__":
+    main()
