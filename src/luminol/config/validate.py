@@ -5,6 +5,7 @@ import os
 from ..cli.term_colors import AnsiColors
 
 WARN = AnsiColors.WARNING
+
 INFO = AnsiColors.INFO
 ERR = AnsiColors.ERROR
 RESET = AnsiColors.RESET
@@ -346,6 +347,7 @@ def validate_application_config(application_config: dict) -> bool:
 
         template = application_options.get("template", None)
 
+        syntax: str = application_options.get("syntax", "")  # type: ignore
         if template is not None:
             # NOTE: os.sep not really needed but in case the future version has compability for windows too
             is_file_name = not (os.sep in template or "/" in template)
@@ -361,12 +363,25 @@ def validate_application_config(application_config: dict) -> bool:
 
             syntax: str = application_options.get("syntax", "")  # type: ignore
             if syntax and ("placeholder" not in syntax):
-                # TODO: improve the warning message
                 error_count += 1
                 logging.error(
                     f"'{WARN}syntax{RESET}' in {INFO}[{application}]{RESET} must contain the word '{WARN}placeholder{RESET}' when using template mode.\n"
                     f"{' ' * 8}Current syntax: '{ERR}{syntax}{RESET}'"
                 )
+        else:
+            # for default mode
+            if syntax:
+                if "{name}" not in syntax:
+                    logging.warning(
+                        f"No {{name}} token found in syntax for {application}. Ignore if intentional"
+                    )
+                    warning_count += 1
+
+                if "{color}" not in syntax:
+                    logging.warning(
+                        f"No {{color}} token found in syntax for {application}. Ignore if intentional"
+                    )
+                    warning_count += 1
 
     ## TODO: also count warning and, if waring count is >0, then inform that warning doesnt mean that there is an issue with the config,
     ##       user can safely ignore the warning is it was intentional
