@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "luminol"
+version = "0.1.0"
+description = "Color palette generator and theme exporter"
+authors = [{ name = "dheemansa", email = "dheemansa@gmail.com" }]
+license = "GPL-3.0"
+
+dependencies = ["pillow", "numpy"]
+classifiers = ["Operating System :: POSIX :: Linux"]
+
+
+[project.scripts]
+luminol = "luminol.main_cli:main"
