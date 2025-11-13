@@ -1,3 +1,6 @@
+from ..utils.data_types import RGB, RGBA
+
+
 def _brightness(r, g, b, value=1.0):
     """
     Adjust brightness of RGB color.
@@ -45,22 +48,7 @@ def _saturation(r, g, b, value=1.0):
     return (r, g, b)
 
 
-def _opacity(r, g, b, value=1.0):
-    """
-    Set opacity/alpha channel.
-
-    Args:
-        r, g, b (int): RGB values (0-255)
-        value (float): Opacity (0.0=transparent, 1.0=opaque)
-
-    Returns:
-        tuple: (r, g, b, a) with alpha channel (0-255)
-    """
-    a = int(max(0, min(255, value * 255)))
-    return (r, g, b, a)
-
-
-def _hue(r, g, b, value=0):
+def _hue(r, g, b, value: float = 0):
     """
     Shift hue of RGB color.
 
@@ -179,79 +167,38 @@ def _contrast(r, g, b, value=1.0):
 
 
 def transform_color(
-    rgb: tuple,
-    hue: int = 0,
-    saturation: float = 1.0,
-    brightness: float = 1.0,
-    contrast: float = 1.0,
+    rgb: RGB,
+    hue: int | None = 0,
+    saturation: float | None = 1.0,
+    brightness: float | None = 1.0,
+    contrast: float | None = 1.0,
     temp: int | None = None,
-    opacity: float = 1.0,
-) -> tuple[int, int, int, float]:
-    r, g, b = rgb
+    opacity: float | None = 1.0,
+) -> RGBA:
+    r, g, b = rgb.r, rgb.g, rgb.b
+
     a = 1.0
 
-    if hue != 0:
+    # hue = 0 means no change
+    if hue != 0 and hue is not None:
         r, g, b = _hue(r, g, b, value=hue)
 
-    if saturation != 1.0:
+    # saturation = 1 means no change
+    if saturation != 1.0 and saturation is not None:
         r, g, b = _saturation(r, g, b, value=saturation)
 
-    if brightness != 1.0:
+    # brightness = 1 means no change
+    if brightness != 1.0 and brightness is not None:
         r, g, b = _brightness(r, g, b, value=brightness)
 
-    if contrast != 1.0:
+    # contrast = 1 means no change
+    if contrast != 1.0 and contrast is not None:
         r, g, b = _contrast(r, g, b, value=contrast)
 
     if temp is not None:
         r, g, b = _temperature(r, g, b, value=temp)
 
-    if opacity != 1.0:
-        a = opacity
+    if opacity is not None:
+        a = max(0.0, min(1.0, opacity))
 
-    return (r, g, b, a)
-
-
-# Example usage
-if __name__ == "__main__":
-    # Test color: orange-ish (255, 140, 70)
-    test_color = (255, 140, 70)
-    print(f"Original color: RGB{test_color}")
-    print()
-
-    # Brightness
-    print("BRIGHTNESS:")
-    print(f"  20% darker (0.8): RGB{_brightness(*test_color, 0.8)}")
-    print(f"  30% brighter (1.3): RGB{_brightness(*test_color, 1.3)}")
-    print()
-
-    # Saturation
-    print("SATURATION:")
-    print(f"  More muted (0.4): RGB{_saturation(*test_color, 0.4)}")
-    print(f"  More vibrant (1.5): RGB{_saturation(*test_color, 1.5)}")
-    print()
-
-    # Opacity
-    print("OPACITY:")
-    r, g, b, a = _opacity(*test_color, 0.8)
-    print(f"  20% transparent (0.8): RGBA{r, g, b, a}")
-    r, g, b, a = _opacity(*test_color, 0.3)
-    print(f"  70% transparent (0.3): RGBA{r, g, b, a}")
-    print()
-
-    # Hue
-    print("HUE:")
-    print(f"  Shift +30°: RGB{_hue(*test_color, 30)}")
-    print(f"  Shift -45°: RGB{_hue(*test_color, -45)}")
-    print(f"  Opposite (180°): RGB{_hue(*test_color, 180)}")
-    print()
-
-    # Temperature
-    print("TEMPERATURE:")
-    print(f"  Warmer (+20): RGB{_temperature(*test_color, 20)}")
-    print(f"  Cooler (-15): RGB{_temperature(*test_color, -15)}")
-    print()
-
-    # Contrast
-    print("CONTRAST:")
-    print(f"  Higher (1.4): RGB{_contrast(*test_color, 1.4)}")
-    print(f"  Lower (0.7): RGB{_contrast(*test_color, 0.7)}")
+    return RGBA(r, g, b, a)
