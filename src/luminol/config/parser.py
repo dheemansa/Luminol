@@ -1,11 +1,12 @@
 import tomllib
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import Any
 from .validate import validate_application_config, validate_global_config
 from ..exceptions.exceptions import InvalidConfigError
 from pathlib import Path
-from ..utils.path import _expand_path
+from ..utils.path import _expand_path, get_luminol_dir
 
 
 def load_config(config_file_path: str | Path) -> dict:
@@ -61,22 +62,39 @@ class AppSettings:
     syntax: str | None = None
     color_format: str | None = None
     remap_colors: bool = False
-    colors: dict[str, Any] = field(default_factory=dict)
-    placeholders: dict[str, Any] = field(default_factory=dict)
-    template: str | None = None
+    colors: dict[str, Any] | None = None
+    template: str | Path | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "AppSettings":
         """Create AppSettings instance from dictionary."""
-        if data.get("output-file", None) is not None:
-            expanded_output_file = _expand_path(data.get("output-file"))  # type:ignore
+
+        def _is_file_name(path: str):
+            if os.sep in path or "/" in path:
+                return False
+            else:
+                return True
+
+        _output_file = data.get("output-file", None)
+
+        if _output_file is not None:
+            # technically _output_file can never be empty/None as it is validated before
+            # but as a safety measure this check is used
+            if not _is_file_name(_output_file):
+                expanded_output_file = _expand_path(data.get("output-file"))  # type:ignore
+            else:
+                expanded_output_file = _output_file
         else:
             expanded_output_file = None
 
-        # TODO: add check for template path and if template path.
-        # if template is just a file name then it is present in luminol config dir
-        # if it is a path then it is at a different location
-        # validate if it exists also add this logic to validate.py
+        _template = data.get("template", None)
+        if _template is not None:
+            if _is_file_name(_template):
+                expanded_template_path = get_luminol_dir() / "templates"
+            else:
+                expanded_template_path = _template
+        else:
+            expanded_template_path = None
 
         return cls(
             enabled=data.get("enabled", False),
@@ -84,9 +102,8 @@ class AppSettings:
             syntax=data.get("syntax"),
             color_format=data.get("color-format"),
             remap_colors=data.get("remap-colors", False),
-            colors=data.get("colors", {}),
-            placeholders=data.get("placeholders", {}),
-            template=data.get("template"),
+            colors=data.get("colors", None),
+            template=expanded_template_path,
         )
 
 
