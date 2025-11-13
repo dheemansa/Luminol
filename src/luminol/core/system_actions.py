@@ -39,7 +39,10 @@ def _run_detached_command(
         expanded_log_dir.mkdir(parents=True, exist_ok=True)
         log_path = expanded_log_dir / f"{command_args_list[0]}.log"
 
-        log_file = open(log_path, "w")
+        # using append mode instead of write because, 2 different reload commands might be using the same command name
+        # for example, kill foo and kill bar, both are different command but them have the same command name
+        # so the latter will overwrite thre previous commamdn
+        log_file = open(log_path, "a")
 
         log_file.write(
             f"****[Date: {datetime.now().date()}][Time: {datetime.now().strftime('%H:%M:%S')}]****\n\n"
@@ -62,6 +65,10 @@ def _run_detached_command(
                 start_new_session=True,
             )
 
+        # TODO: Verify if closing the file handle here is robust. The Popen'd
+        # child process inherits the file descriptor, but closing it in the
+        # parent immediately after launch might lead to race conditions or
+        # lost output on some platforms.
         log_file.close()
 
         logging.info(f"Successfully launched '{command}' with logging to {log_path}")
@@ -93,7 +100,9 @@ def apply_wallpaper(
     Raises:
         WallpaperSetError: If the wallpaper command is not found or fails to start.
     """
-    final_command = wallpaper_set_command.replace("{wallpaper_path}", str(image_path))
+    final_command = wallpaper_set_command.replace(
+        "{wallpaper_path}", f"'{str(image_path)}'"
+    )
 
     logging.debug(f"Executing wallpaper command: {final_command}")
 
@@ -112,20 +121,17 @@ def run_reload_commands(
     """
     Execute a list of reload commands sequentially.
 
-    Each command is started using subprocess.Popen().
-    If verbose=True, waits for completion and shows output. Otherwise, fire-and-forget.
+    Each command is launched as a detached, fire-and-forget process.
 
     Args:
         reload_commands (list[str]): Commands to execute.
         use_shell (bool): If True, enables shell features (pipes, ||, etc.).
                           Avoid using with untrusted input for security reasons.
-        verbose (bool): If True, waits for command completion and shows output. If False, fire-and-forget.
     """
     for cmd in reload_commands:
         logging.debug(f"Running reload command: {cmd}")
-        # use verbose=False (fire-and-forget) because there might be a blocking command like waybar or such
-        # which will cause luminol to hang, only use verbose=True to understand what went wrong but this will
-        # kill the blocking process
+        # Commands are run as detached processes ("fire-and-forget") to prevent
+        # blocking commands (like 'waybar') from hanging Luminol.
         try:
             if use_shell:
                 _run_detached_command(command=cmd, log_dir=log_dir, use_shell=True)
