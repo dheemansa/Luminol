@@ -2,133 +2,172 @@ import os
 from pathlib import Path
 import logging
 import shutil
-from typing import Optional
 
 
 def _expand_path(path_str: str | Path) -> Path:
     """Expand ~, ~user, and environment variables."""
-    # Order: expanduser first, then expandvars
-    expanded = os.path.expanduser(path_str)
+    expanded = os.path.expanduser(str(path_str))
     expanded = os.path.expandvars(expanded)
     return Path(expanded)
 
 
-class LuminolPath:
-    # NOTE all the path are not computed at class initialisation because it will throw an error if an path is not valid
-    # NOTE i want it to raise an error if a required path is invalid, so i have tried to implement lazy loding of properties
-    def __init__(
-        self,
-        config_dir: Optional[str] = None,
-        cache_dir: Optional[str] = None,
-        config_file_path: Optional[str] = None,
-    ) -> None:
-        self._config_dir = None
-        self._cache_dir = None
-        self._config_file_path = None
+def _validate_path(path: Path, path_type: str = "directory") -> Path:
+    """Validate that a path exists and is of the correct type."""
+    if not path.exists():
+        raise FileNotFoundError(f"No such {path_type} exists: {path}")
 
-        if config_dir is not None:
-            self._config_dir: Path = _expand_path(config_dir)
-            if not self._config_dir.exists():
-                logging.error("No such directory exists:", self._config_dir)
-                raise FileNotFoundError(f"No such directory exists: {self._config_dir}")
+    if path_type == "directory" and not path.is_dir():
+        raise NotADirectoryError(f"Path is not a directory: {path}")
+    elif path_type == "file" and not path.is_file():
+        raise FileNotFoundError(f"Path is not a file: {path}")
 
-        if cache_dir is not None:
-            self._cache_dir: Path = _expand_path(cache_dir)
-            if not self._cache_dir.exists():
-                logging.error("No such directory exists:", self._cache_dir)
-                raise FileNotFoundError(f"No such directory exists: {self._cache_dir}")
+    return path
 
-        if config_file_path is not None:
-            self._config_file_path: Path = _expand_path(config_file_path)
-            if not self._config_file_path.exists():
-                logging.error("No such file exists:", self._config_file_path)
-                raise FileNotFoundError(
-                    f"No such file exists: {self._config_file_path}"
-                )
 
-    def luminol_path(self) -> Path:
-        if self._config_dir is not None:
-            return self._config_dir
+def get_luminol_dir(custom_config_dir: str | None = None) -> Path:
+    """
+    Return the path to luminol directory.
 
-        ## function is terminated if a custom path is given
-        ## the rest of the logic only executes if _config_dir is set to None
+    Priority order:
+    1. Custom config directory (if provided)
+    2. $XDG_CONFIG_HOME/luminol
+    3. ~/.config/luminol
 
-        """Return the path to luminol directory, checking XDG then ~/.config."""
-        # check for xdg home config
-        xdg_config_home_env = os.getenv("XDG_CONFIG_HOME")
-        if xdg_config_home_env:
-            xdg_config_home = Path(xdg_config_home_env)
-            if xdg_config_home.is_dir():
-                logging.debug(f"Using {xdg_config_home}")
-                luminol_path = xdg_config_home / "luminol"
-                if luminol_path.is_dir():
-                    return luminol_path
-                else:
-                    logging.debug(f"No such file exists: {luminol_path}")
+    Args:
+        custom_config_dir: Optional custom config directory path
 
-        logging.debug("$XDG_CONFIG_HOME/luminol not found")
+    Returns:
+        Path to the luminol configuration directory
 
-        home_path = Path.home()
-        if home_path.is_dir():
-            luminol_path = home_path / ".config" / "luminol"
+    Raises:
+        FileNotFoundError: If no valid luminol directory is found
+    """
+    # Use custom directory if provided
+    if custom_config_dir is not None:
+        custom_path = _expand_path(custom_config_dir)
+        return _validate_path(custom_path, "directory")
+
+    # Check XDG_CONFIG_HOME
+    xdg_config_home = os.getenv("XDG_CONFIG_HOME")
+    if xdg_config_home:
+        xdg_path = Path(xdg_config_home)
+        if xdg_path.is_dir():
+            luminol_path = xdg_path / "luminol"
             if luminol_path.is_dir():
+                logging.debug(f"Using XDG config: {luminol_path}")
                 return luminol_path
 
-        raise FileNotFoundError(
-            "$XDG_CONFIG_HOME/luminol or $HOME/.config/luminol: no such directory exists"
-        )
+    logging.debug("$XDG_CONFIG_HOME/luminol not found")
 
-    @property
-    def cache_path(self) -> Path:
-        if self._cache_dir is not None:
-            self._cache_dir.mkdir(parents=True, exist_ok=True)
-            return self._cache_dir
+    # Fallback to ~/.config/luminol
+    home_config = Path.home() / ".config" / "luminol"
+    if home_config.is_dir():
+        logging.debug(f"Using home config: {home_config}")
+        return home_config
 
-        ## function is terminated if a custom path is given
-        ## the rest of the logic only executes if _config_dir is set to None
-        xdg_cache_home_env = os.getenv("XDG_CONFIG_HOME")
-        if xdg_cache_home_env:
-            xdg_cache_home = Path(xdg_cache_home_env)
-            if xdg_cache_home.is_dir():
-                luminol_cache_dir = xdg_cache_home / "luminol"
-                luminol_cache_dir.mkdir(parents=True, exist_ok=True)
-                return luminol_cache_dir
-
-        home_cache_path = Path.home() / ".cache"
-        luminol_cache_dir = home_cache_path / "luminol"
-        luminol_cache_dir.mkdir(parents=True, exist_ok=True)
-
-        return luminol_cache_dir
-
-    def clear_cache(self) -> None:
-        try:
-            shutil.rmtree(str(self.cache_path))
-        except Exception as e:
-            logging.critical("Unable to clear cache.", e)
-
-    @property
-    def template_dir(self) -> Path:
-        template_dir = self.luminol_path() / "templates"
-        template_dir.mkdir(parents=True, exist_ok=True)
-        return template_dir
-
-    @property
-    def config_file_path(self) -> Path:
-        if self._config_file_path is not None:
-            return self._config_file_path
-
-        config_file = self.luminol_path() / "config.toml"
-        if config_file.is_file():
-            return config_file
-        raise FileNotFoundError(
-            "No config.toml found in $XDG_CONFIG_HOME/luminol or ~/.config/luminol"
-        )
-
-    # TODO make function with argument dir_name,file_name,contents and store it in cache
-    # TODO make function to copy files saved in cache to the specified location
+    raise FileNotFoundError(
+        "No luminol directory found. Searched:\n"
+        "  - $XDG_CONFIG_HOME/luminol\n"
+        "  - ~/.config/luminol"
+    )
 
 
-# Example use
-# print(LuminolPath.template_dir)
-# print(LuminolPath.config)
-# print(LuminolPath.cache_dir)
+def get_cache_dir(custom_cache_dir: str | None = None) -> Path:
+    """
+    Return the path to luminol cache directory, creating it if needed.
+
+    Priority order:
+    1. Custom cache directory (if provided)
+    2. $XDG_CACHE_HOME/luminol
+    3. ~/.cache/luminol
+
+    Args:
+        custom_cache_dir: Optional custom cache directory path
+
+    Returns:
+        Path to the luminol cache directory
+    """
+    # Use custom directory if provided
+    if custom_cache_dir is not None:
+        cache_path = _expand_path(custom_cache_dir)
+        cache_path.mkdir(parents=True, exist_ok=True)
+        return cache_path
+
+    # Check XDG_CACHE_HOME
+    xdg_cache_home = os.getenv("XDG_CACHE_HOME")
+    if xdg_cache_home:
+        xdg_path = Path(xdg_cache_home)
+        if xdg_path.is_dir():
+            cache_path = xdg_path / "luminol"
+            cache_path.mkdir(parents=True, exist_ok=True)
+            return cache_path
+
+    # Fallback to ~/.cache/luminol
+    cache_path = Path.home() / ".cache" / "luminol"
+    cache_path.mkdir(parents=True, exist_ok=True)
+    return cache_path
+
+
+def clear_directory(dir_path: str | Path, recreate: bool = True) -> None:
+    """
+    Clear a directory by removing all its contents.
+
+    Args:
+        dir_path: Path to the directory to clear
+        recreate: If True, recreate the directory after clearing (default: True)
+
+    Raises:
+        Exception: If unable to clear the directory
+    """
+    try:
+        path = Path(dir_path)
+        if path.exists():
+            shutil.rmtree(path)
+            logging.info(f"Removed: {path}")
+        else:
+            logging.debug(f"Skipped (doesn't exist): {path}")
+
+        if recreate:
+            path.mkdir(parents=True, exist_ok=True)
+            logging.debug(f"Recreated: {path}")
+
+    except Exception as e:
+        logging.critical(f"Failed to clear '{dir_path}': {e}")
+        raise
+
+
+def save_to_cache(
+    content: str | bytes,
+    filename: str,
+    subdir: str | None = None,
+    custom_cache_dir: str | None = None,
+) -> Path:
+    """
+    Save content to a file in the cache directory.
+
+    Args:
+        content: Content to save (string or bytes)
+        filename: Name of the file
+        subdir: Optional subdirectory within cache
+        custom_cache_dir: Optional custom cache directory path
+
+    Returns:
+        Path to the saved file
+    """
+    cache_dir = get_cache_dir(custom_cache_dir)
+
+    if subdir:
+        target_dir = cache_dir / subdir
+        target_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        target_dir = cache_dir
+
+    file_path = target_dir / filename
+
+    if isinstance(content, str):
+        file_path.write_text(content)
+    else:
+        file_path.write_bytes(content)
+
+    logging.debug(f"Saved to cache: {file_path}")
+    return file_path
