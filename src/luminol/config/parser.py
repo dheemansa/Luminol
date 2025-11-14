@@ -39,16 +39,18 @@ def load_config(config_file_path: str | Path) -> dict:
         return config_toml_data
 
     except tomllib.TOMLDecodeError as e:
-        logging.error(f"Invalid TOML syntax in config: {e}")
+        logging.error("Invalid TOML syntax in config: %s", e)
         raise SystemExit(1)
 
     except OSError as e:
-        logging.error(f"Cannot read config file {config_file_path}: {e}")
+        logging.error("Cannot read config file %s: %s", config_file_path, e)
         raise SystemExit(1)
 
     except Exception as e:
         logging.error(
-            f"Unexpected error occurred while loading config from {config_file_path}: {e}"
+            "Unexpected error occurred while loading config from %s: %s",
+            config_file_path,
+            e,
         )
         raise SystemExit(1)
 

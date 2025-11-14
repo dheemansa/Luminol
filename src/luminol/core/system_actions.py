@@ -36,7 +36,7 @@ def _run_detached_command(
         return
 
     command_args_list: list = shlex.split(command)
-    logging.info(f"Executing command: '{command}'")
+    logging.info("Executing command: '%s'", command)
 
     if not log_dir:
         try:
@@ -45,9 +45,9 @@ def _run_detached_command(
             else:
                 subprocess.Popen(command, shell=True, start_new_session=True)
 
-            logging.info(f"Successfully launched '{command}' without logging.")
+            logging.info("Successfully launched '%s' without logging.", command)
         except OSError as e:
-            logging.error(f"Failed to launch '{command}': {e}")
+            logging.error("Failed to launch '%s': %s", command, e)
         return
 
     try:
@@ -89,12 +89,12 @@ def _run_detached_command(
         # lost output on some platforms.
         log_file.close()
 
-        logging.info(f"Successfully launched '{command}' with logging to {log_path}")
+        logging.info("Successfully launched '%s' with logging to %s", command, log_path)
     except OSError as e:
-        logging.error(f"Failed to launch '{command}': {e}")
+        logging.error("Failed to launch '%s': %s", command, e)
     except Exception as e:
         logging.error(
-            f"An unexpected error occurred while trying to run '{command}': {e}"
+            "An unexpected error occurred while trying to run '%s': %s", command, e
         )
 
 
@@ -122,7 +122,7 @@ def apply_wallpaper(
         "{wallpaper_path}", f"'{str(image_path)}'"
     )
 
-    logging.debug(f"Executing wallpaper command: {final_command}")
+    logging.debug("Executing wallpaper command: %s", final_command)
 
     try:
         _run_detached_command(command=final_command, log_dir=log_dir, use_shell=False)
@@ -147,7 +147,7 @@ def run_reload_commands(
                           Avoid using with untrusted input for security reasons.
     """
     for cmd in reload_commands:
-        logging.debug(f"Running reload command: {cmd}")
+        logging.debug("Running reload command: %s", cmd)
         # Commands are run as detached processes ("fire-and-forget") to prevent
         # blocking commands (like 'waybar') from hanging Luminol.
         try:
@@ -157,7 +157,7 @@ def run_reload_commands(
                 _run_detached_command(command=cmd, log_dir=log_dir, use_shell=False)
         except Exception as e:
             logging.error(
-                f"An unexpected error occurred while trying to run '{cmd}': {e}"
+                "An unexpected error occurred while trying to run '%s': %s", cmd, e
             )
 
     logging.info("All reload commands executed.")

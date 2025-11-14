@@ -48,7 +48,7 @@ def extract_colors_kmeans(
                 start = time.perf_counter()
                 img = img.convert("RGB")
                 end = time.perf_counter()
-                logging.info(f"Image Convert to Rgb Colorspace time: {end - start}")
+                logging.info("Image Convert to Rgb Colorspace time: %s", end - start)
 
             start = time.perf_counter()
             if not (img.width <= resize_dim[0] and img.height <= resize_dim[1]):
@@ -56,7 +56,7 @@ def extract_colors_kmeans(
                 img.thumbnail(resize_dim, Image.Resampling.LANCZOS)
 
             end = time.perf_counter()
-            logging.warning(f"Resize time: {end - start}")
+            logging.warning("Resize time: %s", end - start)
 
             # NOTE: instead of resizing the image we could convert the whole image into an array and then
             #       use stride sampling to reduce the number of pixels
@@ -163,7 +163,7 @@ def extract_colors_kmeans(
                     result[color_rgb] = coverage
 
             end = time.perf_counter()
-            logging.warning(f"Kmeans time: {end - start}")
+            logging.warning("Kmeans time: %s", end - start)
             return result
 
     except Exception as e:
@@ -240,5 +240,5 @@ def get_colors(
         color_data_list.sort(key=lambda x: x.coverage, reverse=True)
 
     extract_end_time = time.perf_counter()
-    logging.info(f"Color Data took {extract_end_time - extract_start_time}")
+    logging.info("Color Data took %s", extract_end_time - extract_start_time)
     return color_data_list
