@@ -1,13 +1,13 @@
-from ..utils.data_types import RGB, ColorData
+import logging
+
+from ..utils.data_types import ColorData, RGB
 from .color_computation import (
-    luma,
-    contrast_ratio,
-    blend,
     _find_optimal_blend_for_contrast,
     _is_near_white,
+    blend,
+    contrast_ratio,
+    luma,
 )
-
-import logging
 
 
 def _darken(color: RGB, amount: float) -> RGB:

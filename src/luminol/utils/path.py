@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import logging
 import shutil
+from datetime import datetime, timedelta
 
 
 def _expand_path(path_str: str | Path) -> Path:
@@ -18,7 +19,8 @@ def _validate_path(path: Path, path_type: str = "directory") -> Path:
 
     if path_type == "directory" and not path.is_dir():
         raise NotADirectoryError(f"Path is not a directory: {path}")
-    elif path_type == "file" and not path.is_file():
+
+    if path_type == "file" and not path.is_file():
         raise FileNotFoundError(f"Path is not a file: {path}")
 
     return path
@@ -106,6 +108,87 @@ def get_cache_dir(custom_cache_dir: str | None = None) -> Path:
     cache_path = Path.home() / ".cache" / "luminol"
     cache_path.mkdir(parents=True, exist_ok=True)
     return cache_path
+
+
+def get_log_dir(custom_log_dir: str | None = None) -> Path:
+    """
+    Return the path to the log directory for the current run, creating it if needed.
+
+    The path will be timestamped for each run, e.g., .../luminol/logs/YYYY-MM-DD_HH-MM-SS.
+
+    Priority order for the base directory:
+    1. Custom log directory (if provided)
+    2. $XDG_STATE_HOME/luminol
+    3. ~/.local/state/luminol
+
+    Args:
+        custom_log_dir: Optional custom base log directory path
+
+    Returns:
+        Path to the timestamped log directory for the current run.
+    """
+    # Use custom directory if provided
+    if custom_log_dir is not None:
+        base_log_path = _expand_path(custom_log_dir)
+    else:
+        # Check XDG_STATE_HOME
+        xdg_state_home = os.getenv("XDG_STATE_HOME")
+        if xdg_state_home:
+            base_log_path = _expand_path(xdg_state_home) / "luminol"
+        else:
+            # Fallback to ~/.local/state/luminol
+            base_log_path = Path.home() / ".local" / "state" / "luminol"
+
+    # A new timestamped directory is created for each run. This is to isolate
+    # log outputs and prevent detached, long-running processes from a previous
+    # run from writing to the same log files as processes from the current run.
+    # The YYYY-MM-DD_HH-MM-SS format also ensures chronological sorting.
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_path = base_log_path / "logs" / timestamp
+    log_path.mkdir(parents=True, exist_ok=True)
+    logging.debug(f"Using log directory: {log_path}")
+    return log_path
+
+
+def clear_old_logs(days: int = 7) -> None:
+    """
+    Remove log directories older than a specified number of days.
+
+    Args:
+        days (int): The maximum age of logs in days to keep.
+    """
+    # Determine the base log directory path (without the timestamp)
+    # This logic is duplicated from get_log_dir to find the base path
+    xdg_state_home = os.getenv("XDG_STATE_HOME")
+    if xdg_state_home:
+        base_log_path = _expand_path(xdg_state_home) / "luminol" / "logs"
+    else:
+        base_log_path = Path.home() / ".local" / "state" / "luminol" / "logs"
+
+    if not base_log_path.is_dir():
+        logging.debug("Log directory base does not exist, skipping cleanup.")
+        return
+
+    logging.info(f"Checking for logs older than {days} days in {base_log_path}")
+    now = datetime.now()
+    cutoff = timedelta(days=days)
+
+    for log_dir in base_log_path.iterdir():
+        if not log_dir.is_dir():
+            continue
+
+        try:
+            log_time = datetime.strptime(log_dir.name, "%Y-%m-%d_%H-%M-%S")
+            if now - log_time > cutoff:
+                logging.info(f"Removing old log directory: {log_dir}")
+                shutil.rmtree(log_dir)
+        except ValueError:
+            # Ignore directories that don't match the timestamp format
+            logging.debug(
+                f"Skipping cleanup for non-timestamped directory: {log_dir.name}"
+            )
+        except Exception as e:
+            logging.error(f"Failed to remove directory {log_dir}: {e}")
 
 
 def clear_directory(dir_path: str | Path, recreate: bool = True) -> None:

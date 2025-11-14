@@ -1,12 +1,13 @@
-import tomllib
+from dataclasses import dataclass, field
 import logging
 import os
-from dataclasses import dataclass, field
-from typing import Any
-from .validate import validate_application_config, validate_global_config
-from ..exceptions.exceptions import InvalidConfigError
 from pathlib import Path
+import tomllib
+from typing import Any
+
+from ..exceptions.exceptions import InvalidConfigError
 from ..utils.path import _expand_path, get_luminol_dir
+from .validate import validate_application_config, validate_global_config
 
 
 def load_config(config_file_path: str | Path) -> dict:
@@ -72,8 +73,8 @@ class AppSettings:
         def _is_file_name(path: str):
             if os.sep in path or "/" in path:
                 return False
-            else:
-                return True
+
+            return True
 
         _output_file = data.get("output-file", None)
 
@@ -81,7 +82,7 @@ class AppSettings:
             # technically _output_file can never be empty/None as it is validated before
             # but as a safety measure this check is used
             if not _is_file_name(_output_file):
-                expanded_output_file = _expand_path(data.get("output-file"))  # type:ignore
+                expanded_output_file = _expand_path(_output_file)
             else:
                 expanded_output_file = _output_file
         else:
@@ -90,7 +91,7 @@ class AppSettings:
         _template = data.get("template", None)
         if _template is not None:
             if _is_file_name(_template):
-                expanded_template_path = get_luminol_dir() / "templates"
+                expanded_template_path = get_luminol_dir() / "templates" / _template
             else:
                 expanded_template_path = _template
         else:

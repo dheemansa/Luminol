@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+
 from .path import _expand_path
 
 
@@ -36,14 +37,3 @@ def write_file(file_path: str, content: str | list[str]) -> Path | None:
     except Exception as e:
         logging.error(f"An unexpected error occurred while writing to {file_path}: {e}")
         return None
-
-
-def _dump_dict_colors_json(dict_colors: dict, file_path: str | Path) -> None:
-    import json
-
-    file_path = Path(file_path)
-    with open(file_path, "w") as json_palette_file:
-        file_path.parent.mkdir(exist_ok=True, parents=True)
-        json.dump(dict_colors, json_palette_file, indent=4)
-
-    print("Json Palette Saved successfully")

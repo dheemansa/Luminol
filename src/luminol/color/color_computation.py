@@ -1,4 +1,4 @@
-from ..utils.data_types import RGB, ColorData
+from ..utils.data_types import RGB
 
 GAMMA = 2.4
 INV_GAMMA = 1 / GAMMA
@@ -8,15 +8,15 @@ def to_linear(c) -> float:
     c = c / 255.0
     if c <= 0.04045:
         return c / 12.92
-    else:
-        return ((c + 0.055) / 1.055) ** GAMMA
+
+    return ((c + 0.055) / 1.055) ** GAMMA
 
 
 def linear_to_standard(l) -> int:
     if l <= 0.0031308:
         return round(12.92 * l * 255)
-    else:
-        return round(255 * (1.055 * l ** (INV_GAMMA) - 0.055))
+
+    return round(255 * (1.055 * l ** (INV_GAMMA) - 0.055))
 
 
 def luma(r: int, g: int, b: int) -> float:
@@ -64,9 +64,7 @@ def blend(color: RGB, blend_with: RGB, amount: float) -> RGB:
         blend_with: The color to blend with
         amount: How much of blend_with to use (0.0 = all color, 1.0 = all blend_with)
     """
-    # naming convention in case i forget
-    # 1 -> color
-    # 2 -> blend_with
+    # 1 refers to the base color, 2 refers to the blend_with color
 
     r_lin1 = to_linear(color.r)
     g_lin1 = to_linear(color.g)

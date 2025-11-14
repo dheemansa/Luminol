@@ -1,51 +1,106 @@
 from collections import namedtuple
+from typing import TYPE_CHECKING
 from ..cli.term_colors import AnsiColors as AC
-from typing import cast, Type
 
-RGB = namedtuple("RGB", ["r", "g", "b"])
-RGB.__str__ = lambda self: (
-    f"{AC.bg_rgb(r=self.r, g=self.g, b=self.b)}{rgb_to_hex6(self)}{AC.RESET}"
-)
-RGBA = namedtuple("RGBA", ["r", "g", "b", "a"])
+# NOTE: type_checking logic was generated/suggested by AI
 
 
-def rgb_to_hex6(rgb: RGB) -> str:
-    """Convert an RGB namedtuple to a HEX string."""
-    return "#{:02X}{:02X}{:02X}".format(rgb.r, rgb.g, rgb.b)
+if TYPE_CHECKING:
+    # Type checkers see this clean definition
+    from typing import NamedTuple as _NamedTuple
+
+    class RGB(_NamedTuple):
+        """RGB color representation with hex conversion."""
+
+        r: int
+        g: int
+        b: int
+
+        @property
+        def hex(self) -> str:
+            """6-digit hex representation (#RRGGBB)."""
+            ...
+
+        def __str__(self) -> str: ...
+
+else:
+    # Runtime uses fast immutable namedtuple
+    RGB = namedtuple("RGB", ["r", "g", "b"])
+
+    # Add hex property
+    RGB.hex = property(lambda self: f"#{self.r:02X}{self.g:02X}{self.b:02X}")
+
+    # Add __str__ method with ANSI color background
+    RGB.__str__ = lambda self: (
+        f"{AC.bg_rgb(r=self.r, g=self.g, b=self.b)}{self.hex}{AC.RESET}"
+    )
 
 
-def rgba_to_hex6(rgba: RGBA) -> str:
-    """Convert an RGB namedtuple to a HEX string."""
-    return "#{:02X}{:02X}{:02X}".format(rgba.r, rgba.g, rgba.b)
+if TYPE_CHECKING:
+
+    class RGBA(_NamedTuple):
+        """RGBA color representation with alpha channel."""
+
+        r: int
+        g: int
+        b: int
+        a: float
+
+        @property
+        def hex6(self) -> str:
+            """6-digit hex ignoring alpha (#RRGGBB)."""
+            ...
+
+        @property
+        def hex8(self) -> str:
+            """8-digit hex including alpha (#RRGGBBAA)."""
+            ...
+
+        @property
+        def hex(self) -> str:
+            """Alias to hex6 to preserve existing .hex usage."""
+            ...
+
+else:
+    RGBA = namedtuple("RGBA", ["r", "g", "b", "a"])
+
+    # Add hex6 property (ignores alpha)
+    RGBA.hex6 = property(lambda self: f"#{self.r:02X}{self.g:02X}{self.b:02X}")
+
+    # Add hex8 property (includes alpha)
+    def _rgba_hex8(self) -> str:
+        a = max(0, min(255, round(self.a * 255)))
+        return f"#{self.r:02X}{self.g:02X}{self.b:02X}{a:02X}"
+
+    RGBA.hex8 = property(_rgba_hex8)
+
+    # Add hex alias
+    RGBA.hex = property(lambda self: self.hex6)
 
 
-def rgba_to_hex8(rgba: RGBA) -> str:
-    # Clamp alpha to 0–1, then scale to 0–255
-    a = max(0, min(255, round(rgba.a * 255)))
-    return f"#{rgba.r:02X}{rgba.g:02X}{rgba.b:02X}{a:02X}"
+if TYPE_CHECKING:
+
+    class ColorData(_NamedTuple):
+        """Color with additional metrics (coverage and luminance)."""
+
+        rgb: RGB
+        coverage: float
+        luma: float
+
+        def __str__(self) -> str: ...
+
+else:
+    ColorData = namedtuple("ColorData", ["rgb", "coverage", "luma"])
+
+    # Add __str__ method
+    ColorData.__str__ = lambda self: (
+        f"{AC.bg_rgb(r=self.rgb.r, g=self.rgb.g, b=self.rgb.b)}"
+        f"{self.rgb.hex}{AC.RESET} "
+        f"Luma={self.luma:.3f} Coverage={self.coverage:.3f}"
+    )
 
 
-# Tell Python we're treating RGB and RGBA like normal classes (not just namedtuples)
-RGB_t = cast(Type, RGB)
-RGBA_t = cast(Type, RGBA)
-
-RGB_t.hex = property(lambda self: rgb_to_hex6(self))
-RGBA_t.hex6 = property(lambda self: rgba_to_hex6(self))
-RGBA_t.hex8 = property(lambda self: rgba_to_hex8(self))
-
-ColorData = namedtuple("ColorData", ["rgb", "coverage", "luma"])
-ColorData.__str__ = lambda self: (
-    f"{AC.bg_rgb(r=self.rgb.r, g=self.rgb.g, b=self.rgb.b)}"
-    f"{rgb_to_hex6(self.rgb)}{AC.RESET} Luma={self.luma:.3f} Coverage={self.coverage:.3f}"
-)
-
-# examples
 """
-Color data structures and conversion utilities.
-
-This module provides RGB/RGBA color representations and conversion functions
-for the Luminol theme engine.
-
 Examples:
     Basic RGB usage:
         >>> rgb = RGB(255, 128, 0)
@@ -62,13 +117,9 @@ Examples:
         '#FF800080'
     
     ColorData with metrics:
-        >>> color = ColorData(RGB(255, 128, 0), coverage=0.45, luma=72)
-        >>> color.rgb
-        RGB(r=255, g=128, b=0)
+        >>> color = ColorData(RGB(255, 128, 0), coverage=0.45, luma=72.5)
+        >>> color.rgb.hex
+        '#FF8000'
         >>> color.luma
-        72
-        >>> color.coverage
-        0.45
-        >>> color.rgb.r
-        255
+        72.5
 """

@@ -1,14 +1,22 @@
-import time
 import logging
-from .exceptions.exceptions import InvalidConfigError
-from .cli.term_colors import AnsiColors
-from .utils.logging_config import configure_logging
+from pathlib import Path
+import time
+
 from .cli.cli_parser import parse_arguments
-from .config.parser import Config, load_config
-from .color.extraction import get_colors
-from .utils.path import get_cache_dir, get_luminol_dir, clear_directory
-from .core.system_actions import apply_wallpaper, run_reload_commands
+from .cli.term_colors import AnsiColors
 from .color.assign import assign_color
+from .color.extraction import get_colors
+from .config.parser import Config, load_config
+from .core.system_actions import apply_wallpaper, run_reload_commands
+from .exceptions.exceptions import InvalidConfigError, WallpaperSetError
+from .utils.logging_config import configure_logging
+from .utils.path import (
+    clear_directory,
+    clear_old_logs,
+    get_cache_dir,
+    get_log_dir,
+    get_luminol_dir,
+)
 
 
 # TODO later use Luminol package to create the cli
@@ -21,6 +29,9 @@ def main():
 
     # if args.verbvose is true, then enable verbose logging
     configure_logging(verbose=args.verbose)
+
+    # Clean up old log files before this run
+    clear_old_logs()
 
     # verbose_flag: bool = args.verbose
     image_path: str = args.image
@@ -38,19 +49,22 @@ def main():
         quality_flag = "balanced"
 
     if preview_flag is True:
+        logging.info("Extracting colors...")
         extract_start_time = time.perf_counter()
 
-        raw_colors = get_colors(
-            image_path=image_path, num_colors=8, preset=quality_flag
+        colors = get_colors(
+            image_path=str(image_path),
+            num_colors=8,
+            preset=quality_flag,
+            sort_by="luma",
         )
 
-        for col in raw_colors:
-            print(col)
+        for color in colors:
+            print(color.rgb)
 
         extract_end_time = time.perf_counter()
-
-        logging.info(f"Color Extraction took {extract_end_time - extract_start_time}")
-
+        duration = extract_end_time - extract_start_time
+        logging.info(f"Color Extraction took {duration:.4f} seconds")
         raise SystemExit(0)
 
     LUMINOL_CONFIG_DIR = get_luminol_dir()
@@ -75,38 +89,38 @@ def main():
         raise SystemExit(0)
 
     if config.global_settings.log_output is True:
-        log_dir = LUMINOL_CACHE_DIR / "logs"
+        log_dir = get_log_dir()
     else:
         log_dir = None
 
-    # if wallpaper-command is not set then skip execution of wallpaper command
-    if config.global_settings.wallpaper_command:
-        try:
-            apply_wallpaper(
-                wallpaper_set_command=config.global_settings.wallpaper_command,
-                image_path=image_path,
-                log_dir=log_dir,
-            )
-        except Exception as e:
-            logging.error(e)
-            return
+    if dry_run_flag is False:
+        # if wallpaper-command is not set then skip execution of wallpaper command
+        if config.global_settings.wallpaper_command:
+            try:
+                apply_wallpaper(
+                    wallpaper_set_command=config.global_settings.wallpaper_command,
+                    image_path=image_path,
+                    log_dir=log_dir,
+                )
+            except WallpaperSetError as e:
+                logging.error(e)
+                raise SystemExit(1)
 
-    extract_start_time = time.perf_counter()
+            except Exception as e:
+                logging.error(e)
+                raise SystemExit(1)
 
     color_data = get_colors(
         image_path=image_path, num_colors=8, preset=quality_flag, sort_by="luma"
     )
-
-    for color in color_data:
-        print(color)
-
-    extract_end_time = time.perf_counter()
-    print(f"Color Extraction took {extract_end_time - extract_start_time}")
+    for col in color_data:
+        print(col)
 
     assign_start_time = time.perf_counter()
 
     # clear cache
     clear_directory(dir_path=LUMINOL_CACHE_DIR, recreate=True)
+    logging.info(f"Cache Cleared")
 
     # if theme is set in cli then override the theme_type in config
     if theme_type_flag is not None:
@@ -117,24 +131,25 @@ def main():
         )
 
     assign_end_time = time.perf_counter()
-    logging.warning(f"Color assign took {assign_end_time - assign_start_time}")
+    logging.info(f"Color assign took {assign_end_time - assign_start_time}")
 
     # TODO: create and save palette files to cache and use dry_run_flag and then copy files to specified directory
     # TODO: also make a tty reload similar to pywall and also implement a config setting in config.toml to enable/disable tty-reload=false
 
-    # NOTE: this will be the last step
-    # if reload-command is not set then skip execution of reload command
-    if config.global_settings.reload_commands:
-        try:
-            run_reload_commands(
-                reload_commands=config.global_settings.reload_commands,
-                use_shell=config.global_settings.use_shell,
-                log_dir=log_dir,
-            )
+    if dry_run_flag is False:
+        # NOTE: this will be the last step
+        # if reload-command is not set then skip execution of reload command
+        if config.global_settings.reload_commands:
+            try:
+                run_reload_commands(
+                    reload_commands=config.global_settings.reload_commands,
+                    use_shell=config.global_settings.use_shell,
+                    log_dir=log_dir,
+                )
 
-        except Exception as e:
-            logging.error(e)
-            return
+            except Exception as e:
+                logging.exception(e)
+                raise SystemExit(1)
 
 
 if __name__ == "__main__":
