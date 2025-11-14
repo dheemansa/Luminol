@@ -1,113 +1,28 @@
+import colorsys
 from ..utils.data_types import RGB, RGBA
 
 
-def _brightness(r, g, b, value=1.0):
+def _hsv_transform(r, g, b, hue_shift=0, sat_factor=1.0, bright_factor=1.0):
     """
-    Adjust brightness of RGB color.
-
-    Args:
-        r, g, b (int): RGB values (0-255)
-        value (float): Brightness factor (0.0=black, 1.0=unchanged, 2.0+=brighter)
-
-    Returns:
-        tuple: Adjusted (r, g, b) values
+    Apply hue, saturation, and brightness transformations using the HSV color space.
     """
-    r = int(max(0, min(255, r * value)))
-    g = int(max(0, min(255, g * value)))
-    b = int(max(0, min(255, b * value)))
-    return (r, g, b)
-
-
-def _saturation(r, g, b, value=1.0):
-    """
-    Adjust saturation of RGB color.
-
-    Args:
-        r, g, b (int): RGB values (0-255)
-        value (float): Saturation factor (0.0=gray, 1.0=unchanged, 2.0+=vibrant)
-
-    Returns:
-        tuple: Adjusted (r, g, b) values
-    """
-    # Convert to 0-1 range
     r_norm, g_norm, b_norm = r / 255.0, g / 255.0, b / 255.0
-
-    # Calculate grayscale (luminance)
-    gray = 0.299 * r_norm + 0.587 * g_norm + 0.114 * b_norm
-
-    # Interpolate between gray and original color
-    r_new = gray + (r_norm - gray) * value
-    g_new = gray + (g_norm - gray) * value
-    b_new = gray + (b_norm - gray) * value
-
-    # Clamp and convert back to 0-255
-    r = int(max(0, min(255, r_new * 255)))
-    g = int(max(0, min(255, g_new * 255)))
-    b = int(max(0, min(255, b_new * 255)))
-
-    return (r, g, b)
-
-
-def _hue(r, g, b, value: float = 0):
-    """
-    Shift hue of RGB color.
-
-    Args:
-        r, g, b (int): RGB values (0-255)
-        value (float): Hue shift in degrees (-360 to +360)
-
-    Returns:
-        tuple: Adjusted (r, g, b) values
-    """
-    # Convert RGB to HSV
-    r_norm, g_norm, b_norm = r / 255.0, g / 255.0, b / 255.0
-
-    max_c = max(r_norm, g_norm, b_norm)
-    min_c = min(r_norm, g_norm, b_norm)
-    diff = max_c - min_c
-
-    # Calculate hue
-    if diff == 0:
-        h = 0
-    elif max_c == r_norm:
-        h = 60 * (((g_norm - b_norm) / diff) % 6)
-    elif max_c == g_norm:
-        h = 60 * (((b_norm - r_norm) / diff) + 2)
-    else:
-        h = 60 * (((r_norm - g_norm) / diff) + 4)
-
-    # Calculate saturation
-    s = 0 if max_c == 0 else diff / max_c
-
-    # Calculate value
-    v = max_c
+    h, s, v = colorsys.rgb_to_hsv(r_norm, g_norm, b_norm)
 
     # Apply hue shift
-    h = (h + value) % 360
+    if hue_shift != 0:
+        h = (h + hue_shift / 360.0) % 1.0
 
-    # Convert back to RGB
-    c = v * s
-    x = c * (1 - abs((h / 60) % 2 - 1))
-    m = v - c
+    # Apply saturation factor
+    if sat_factor != 1.0:
+        s = max(0.0, min(1.0, s * sat_factor))
 
-    if 0 <= h < 60:
-        r_new, g_new, b_new = c, x, 0
-    elif 60 <= h < 120:
-        r_new, g_new, b_new = x, c, 0
-    elif 120 <= h < 180:
-        r_new, g_new, b_new = 0, c, x
-    elif 180 <= h < 240:
-        r_new, g_new, b_new = 0, x, c
-    elif 240 <= h < 300:
-        r_new, g_new, b_new = x, 0, c
-    else:
-        r_new, g_new, b_new = c, 0, x
+    # Apply brightness factor
+    if bright_factor != 1.0:
+        v = max(0.0, min(1.0, v * bright_factor))
 
-    r = int((r_new + m) * 255)
-    g = int((g_new + m) * 255)
-    b = int((b_new + m) * 255)
-
-    return (r, g, b)
+    r_new, g_new, b_new = colorsys.hsv_to_rgb(h, s, v)
+    return (int(r_new * 255), int(g_new * 255), int(b_new * 255))
 
 
 def _temperature(r, g, b, value=0):
@@ -166,38 +81,36 @@ def _contrast(r, g, b, value=1.0):
     return (r, g, b)
 
 
-def transform_color(
-    rgb: RGB,
-    hue: int | None = 0,
-    saturation: float | None = 1.0,
-    brightness: float | None = 1.0,
-    contrast: float | None = 1.0,
+def _transform_color(
+    rgb: RGB | RGBA,
+    hue: int | None = None,
+    saturation: float | None = None,
+    brightness: float | None = None,
+    contrast: float | None = None,
     temp: int | None = None,
-    opacity: float | None = 1.0,
+    opacity: float | None = None,
 ) -> RGBA:
     r, g, b = rgb.r, rgb.g, rgb.b
 
-    a = 1.0
+    # Set initial alpha. If an RGBA is passed, use its alpha, otherwise default to 1.0
+    a = rgb.a if isinstance(rgb, RGBA) else 1.0
 
-    # hue = 0 means no change
-    if hue != 0 and hue is not None:
-        r, g, b = _hue(r, g, b, value=hue)
+    # Handle HSV transformations
+    hue_shift = hue if hue is not None else 0
+    sat_factor = saturation if saturation is not None else 1.0
+    bright_factor = brightness if brightness is not None else 1.0
 
-    # saturation = 1 means no change
-    if saturation != 1.0 and saturation is not None:
-        r, g, b = _saturation(r, g, b, value=saturation)
+    if hue_shift != 0 or sat_factor != 1.0 or bright_factor != 1.0:
+        r, g, b = _hsv_transform(r, g, b, hue_shift, sat_factor, bright_factor)
 
-    # brightness = 1 means no change
-    if brightness != 1.0 and brightness is not None:
-        r, g, b = _brightness(r, g, b, value=brightness)
-
-    # contrast = 1 means no change
-    if contrast != 1.0 and contrast is not None:
+    # Handle other transformations
+    if contrast is not None and contrast != 1.0:
         r, g, b = _contrast(r, g, b, value=contrast)
 
-    if temp is not None:
+    if temp is not None and temp != 0:
         r, g, b = _temperature(r, g, b, value=temp)
 
+    # If opacity is explicitly passed, it overrides any existing alpha
     if opacity is not None:
         a = max(0.0, min(1.0, opacity))
 

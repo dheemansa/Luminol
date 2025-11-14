@@ -28,6 +28,9 @@ def extract_colors_kmeans(
     import numpy as np
     from PIL import Image
 
+    # using import inside function to avoid slow startup time, when no color extraction is needed
+    # for example --validate, no extraction is needed
+
     end = time.perf_counter()
     print(f"Numpy and Pillow took {end - start} to import")
 

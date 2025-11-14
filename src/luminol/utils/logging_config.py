@@ -3,7 +3,7 @@ from ..cli.term_colors import AnsiColors
 
 
 def configure_logging(verbose: bool):
-    logging_level = logging.DEBUG if verbose else logging.WARNING
+    logging_level = logging.DEBUG if verbose else logging.INFO
 
     logging.addLevelName(logging.DEBUG, f"{AnsiColors.DEBUG}DEBUG{AnsiColors.RESET}")
     logging.addLevelName(logging.INFO, f"{AnsiColors.INFO}INFO{AnsiColors.RESET}")

@@ -4,8 +4,7 @@ This document outlines the configuration, color palettes, and template system fo
 
 ## Available Semantic Colors
 
-Luminol generates a standard set of UI and terminal colors. These names are used as source colors in
-your configuration.
+Luminol generates a standard set of UI and terminal colors. These names are used as source colors in your configuration.
 
 ### UI Semantic Colors
 
@@ -30,8 +29,8 @@ border-inactive
 
 ### Terminal (ANSI) Colors
 
-These **16 colors** are generated for terminal emulators and **can also be used as source colors**
-in templates and custom mappings.
+These **16 colors** are generated for terminal emulators and **can also be used as source colors** in templates and
+custom mappings.
 
 <!-- prettier-ignore -->
 ```
@@ -87,12 +86,15 @@ use-shell = false
 # Default: false
 tty-reload = false # this will reload the tty colors, will be implemented in later version
 
-# If true, stdout and stderr from reload commands will be sent to a log file.
+# If true, stdout and stderr from reload commands and wallpaper command will be sent to a log file.
 # Default: false
 log-output = false
-# Logs saved to: $XDG_CACHE_HOME/luminol/logs/<command_name>.log
-# (<command_name> is the first part of the command, e.g., 'hyprctl' from "hyprctl reload")
-# (defaults to ~/.cache/luminol/logs/<command_name>.log if XDG_CACHE_HOME is not set)
+# Logs for each run are saved to a unique, timestamped directory:
+# Path: $XDG_STATE_HOME/luminol/logs/YYYY-MM-DD_HH-MM-SS/<command>.log
+# (defaults to ~/.local/state/luminol/logs/... if XDG_STATE_HOME is not set)
+#
+# Log Cleanup: To prevent logs from filling up disk space, directories older
+# than 7 days are automatically deleted each time Luminol runs.
 
 # ---------------------------------------------------------------------
 # 🔧 Shell Execution Details
@@ -148,36 +150,33 @@ Each application has its own section (e.g., `[rofi]`, `[dunst]`).
       `$XDG_CACHE_HOME/luminol/<app_name>/<filename>`. defaults to ~/.cache/luminol/.. if not set.
 - `color-format`: (Required) The output format for colors.
     - **Valid values**: `hex6`, `hex8`, `rgb`, `rgba`, `rgb_decimal`, `rgba_decimal`
-    - Alpha channel in formats like `hex6` and `rgb` is ignored; use `hex8`, `rgba`, or
-      `rgba_decimal` for transparency support.
+    - Alpha channel in formats like `hex6` and `rgb` is ignored; use `hex8`, `rgba`, or `rgba_decimal` for transparency
+      support.
 - `syntax`: (Required) A pattern that defines how content is generated.
 - `template`: (Optional) The path to a template file. If this is set, Template Mode is activated.
     - If `template` is a **filename** (e.g., `colors.rasi`, `style.css`), it must be located in
-      `$XDG_CONFIG_HOME/luminol/templates/`. **Clarification**: When only a filename is provided,
-      Luminol assumes the template resides in the standard templates directory
-      (`$XDG_CONFIG_HOME/luminol/templates/`).
-    - If `template` is an **absolute path** (e.g.,
-      `/home/user/.config/my_templates/custom.template`), it will be used directly.
-- `remap-colors`: (Optional) `true` or `false`. Defaults to `false`. This is the master switch for
-  custom mapping.
+      `$XDG_CONFIG_HOME/luminol/templates/`. **Clarification**: When only a filename is provided, Luminol assumes the
+      template resides in the standard templates directory (`$XDG_CONFIG_HOME/luminol/templates/`).
+    - If `template` is an **absolute path** (e.g., `/home/user/.config/my_templates/custom.template`), it will be used
+      directly.
+- `remap-colors`: (Optional) `true` or `false`. Defaults to `false`. This is the master switch for custom mapping.
 
 ---
 
 ## Understanding Syntax and Placeholders
 
-Before diving into the color generation modes, it's crucial to understand how the `syntax` parameter
-works and what placeholders are.
+Before diving into the color generation modes, it's crucial to understand how the `syntax` parameter works and what
+placeholders are.
 
 ### What is Syntax?
 
-The `syntax` parameter is a **pattern template** that tells Luminol how to format each line of
-output in your generated color file. Think of it as a recipe that defines the structure of each
-color definition.
+The `syntax` parameter is a **pattern template** that tells Luminol how to format each line of output in your generated
+color file. Think of it as a recipe that defines the structure of each color definition.
 
 ### What are Placeholders?
 
-Placeholders are **special keywords** that Luminol replaces with actual values when generating your
-color files. There are different types of placeholders depending on which mode you're using:
+Placeholders are **special keywords** that Luminol replaces with actual values when generating your color files. There
+are different types of placeholders depending on which mode you're using:
 
 #### Universal Placeholders (used in syntax patterns)
 
@@ -330,8 +329,7 @@ syntax = "/* Color entry */"
 /* Color entry */
 ```
 
-This creates one line per color, but all lines are identical. This is rarely useful but demonstrates
-the flexibility.
+This creates one line per color, but all lines are identical. This is rarely useful but demonstrates the flexibility.
 
 #### Example 10: Complex Multi-Part Syntax
 
@@ -350,9 +348,8 @@ color-format = "hex6"
 
 ### Using Literal Curly Braces in Syntax
 
-Sometimes you need literal curly braces in your output. Only `{name}`, `{color}`, and
-`{placeholder}` are treated as special keywords. Any other text enclosed in single curly braces will
-be treated as a literal string.
+Sometimes you need literal curly braces in your output. Only `{name}`, `{color}`, and `{placeholder}` are treated as
+special keywords. Any other text enclosed in single curly braces will be treated as a literal string.
 
 ```toml
 # To get literal {static}, simply use single braces
@@ -370,8 +367,7 @@ color: {static}; var: #2a2a3a;
 
 ## Color Generation Modes
 
-Luminol has three main modes for generating color files. They are processed in this order of
-priority:
+Luminol has three main modes for generating color files. They are processed in this order of priority:
 
 ### Mode Priority Order
 
@@ -385,9 +381,8 @@ priority:
 
 #### A Note on the Examples
 
-The configuration snippets and output shown in this document are for **illustration purposes**.
-While they aim to be realistic, always refer to the official documentation for each application to
-ensure you are using the correct syntax.
+The configuration snippets and output shown in this document are for **illustration purposes**. While they aim to be
+realistic, always refer to the official documentation for each application to ensure you are using the correct syntax.
 
 #### Choosing the Right Mode for Your File Format
 
@@ -395,36 +390,35 @@ The best mode to use depends on how your target application handles its configur
 
 **1. Use Default or Custom Mapping Mode when...**
 
-Your application supports importing or sourcing a separate file for colors. This is the most common
-and recommended workflow.
+Your application supports importing or sourcing a separate file for colors. This is the most common and recommended
+workflow.
 
-- **How it works:** You generate a simple, color-only file (e.g., `colors.css`, `colors.conf`) and
-  then use an import statement in your main application config to load it.
+- **How it works:** You generate a simple, color-only file (e.g., `colors.css`, `colors.conf`) and then use an import
+  statement in your main application config to load it.
 - **Examples:**
     - **Waybar/Rofi:** Use `@import "colors.css";` in your `style.css`.
     - **Hyprland:** Use `source = ~/.config/hypr/colors.conf` in your `hyprland.conf`.
     - **Kitty:** Use `include ./colors.conf` in your `kitty.conf`.
-- **Benefit:** This keeps your color definitions separate from your main configuration, making it
-  cleaner and easier to manage. You avoid the "burden of templates."
+- **Benefit:** This keeps your color definitions separate from your main configuration, making it cleaner and easier to
+  manage. You avoid the "burden of templates."
 
 **2. Use Template Mode when...**
 
 Your application's configuration is a single, monolithic file that does not support imports.
 
-- **How it works:** You use your entire application config file as a template, and Luminol replaces
-  color placeholders within it, generating a new, complete config file.
+- **How it works:** You use your entire application config file as a template, and Luminol replaces color placeholders
+  within it, generating a new, complete config file.
 - **Use Cases:**
     - An application that requires all settings to be in one file.
     - You prefer to manage a single configuration file instead of multiple.
-    - The file format is complex (like JSON or YAML) and requires specific wrappers (`{...}`) that
-      Default Mode cannot create.
+    - The file format is complex (like JSON or YAML) and requires specific wrappers (`{...}`) that Default Mode cannot
+      create.
 
 ---
 
 ## Mode 1: Default Mode
 
-This is the **simplest mode** and the fallback when neither `template` is set nor `remap-colors` is
-`true`.
+This is the **simplest mode** and the fallback when neither `template` is set nor `remap-colors` is `true`.
 
 ### What It Does
 
@@ -605,24 +599,20 @@ $border-inactive: rgba(64, 64, 64, 1);
 
 ### Important Notes for Default Mode
 
-1. **[app.colors] table is ignored**: If you accidentally include a `[app.colors]` table, it will be
-   silently ignored (no error, no warning).
+1. **[app.colors] table is ignored**: If you accidentally include a `[app.colors]` table, it will be silently ignored
+   (no error, no warning).
 
-2. **Only UI colors are exported**: The 13 semantic UI colors are exported, but ANSI terminal colors
-   are not.
+2. **Only UI colors are exported**: The 13 semantic UI colors are exported, but ANSI terminal colors are not.
 
-3. **No transformations possible**: You cannot modify colors with brightness, saturation, etc. in
-   this mode.
+3. **No transformations possible**: You cannot modify colors with brightness, saturation, etc. in this mode.
 
-4. **Fixed color set**: You always get all 13 colors - you cannot pick and choose which ones to
-   include.
+4. **Fixed color set**: You always get all 13 colors - you cannot pick and choose which ones to include.
 
 ---
 
 ## Mode 2: Custom Mapping Mode (Default + Remap Enabled)
 
-This mode gives you **full control** over which colors are exported, what they're named, and how
-they're transformed.
+This mode gives you **full control** over which colors are exported, what they're named, and how they're transformed.
 
 ### What It Does
 
@@ -641,8 +631,8 @@ remap-colors = true          # Must be set to true
 # ... your color mappings
 ```
 
-⚠️ **Error Condition**: If `remap-colors = true` but the `[app.colors]` table is missing, Luminol
-will raise a configuration error.
+⚠️ **Error Condition**: If `remap-colors = true` but the `[app.colors]` table is missing, Luminol will raise a
+configuration error.
 
 ### Key Characteristics
 
@@ -900,26 +890,23 @@ Available: main-text
 
 ### Important Notes for Custom Mapping Mode
 
-1. **Only mapped colors are exported**: Unlike Default Mode, you only get the colors you explicitly
-   define.
+1. **Only mapped colors are exported**: Unlike Default Mode, you only get the colors you explicitly define.
 
-2. **Custom names**: The keys in `[app.colors]` become your variable names - use names that match
-   your application's conventions.
+2. **Custom names**: The keys in `[app.colors]` become your variable names - use names that match your application's
+   conventions.
 
-3. **All 29 source colors available**: You can use any of the 13 UI colors or 16 ANSI colors as
-   sources.
+3. **All 29 source colors available**: You can use any of the 13 UI colors or 16 ANSI colors as sources.
 
 4. **Transformations are optional**: Simple remapping without transformations is perfectly valid.
 
-5. **Order matters**: Colors appear in the output file in the order you define them in
-   `[app.colors]`.
+5. **Order matters**: Colors appear in the output file in the order you define them in `[app.colors]`.
 
 ---
 
 ## Mode 3: Template Mode
 
-Template Mode is the **most powerful and flexible** mode, designed for complex configuration files
-where you need precise control over the entire file structure.
+Template Mode is the **most powerful and flexible** mode, designed for complex configuration files where you need
+precise control over the entire file structure.
 
 ### What It Does
 
@@ -952,9 +939,8 @@ template = "my-theme.conf"   # OR absolute path
 
 #### The Template File
 
-A template file is a copy of your application's configuration file where color values are replaced
-with **placeholder markers**. Luminol reads this template and substitutes the placeholders with
-actual colors.
+A template file is a copy of your application's configuration file where color values are replaced with **placeholder
+markers**. Luminol reads this template and substitutes the placeholders with actual colors.
 
 #### The Placeholder Keyword
 
@@ -1032,17 +1018,14 @@ text-primary
 # etc. (no delimiters at all)
 ```
 
-⚠️ **Critical**: The syntax in Template Mode does NOT use `{name}` or `{color}` - it ONLY uses the
-word `placeholder`.
+⚠️ **Critical**: The syntax in Template Mode does NOT use `{name}` or `{color}` - it ONLY uses the word `placeholder`.
 
 ⚠️ **A Note on Choosing a Syntax Pattern**
 
-You are right to be cautious. While you can use any characters to define your `syntax`, it is
-**highly recommended to avoid using single or double quotes** as part of your pattern (e.g.,
-`syntax = '"{placeholder}"'`).
+You are right to be cautious. While you can use any characters to define your `syntax`, it is **highly recommended to
+avoid using single or double quotes** as part of your pattern (e.g., `syntax = '"{placeholder}"'`).
 
-Automated code formatters may change the quotes, causing your placeholders to no longer be
-recognized.
+Automated code formatters may change the quotes, causing your placeholders to no longer be recognized.
 
 A more robust approach is to use delimiters that are not quotes, such as:
 
@@ -1503,8 +1486,7 @@ custom-name-2 = { source = "ansi-1", brightness = 1.2 }
 # These keys become your placeholder names
 ```
 
-⚠️ **Error Condition**: If `remap-colors = true` but `[app.colors]` is missing, you'll get a
-configuration error.
+⚠️ **Error Condition**: If `remap-colors = true` but `[app.colors]` is missing, you'll get a configuration error.
 
 ### How It Works
 
@@ -1928,8 +1910,8 @@ white=#e0e0e0
 
 ## Color Transformations
 
-When using the `[app.colors]` table (in Custom Mapping Mode or Template Mode with
-`remap-colors = true`), you can apply transformations to any source color.
+When using the `[app.colors]` table (in Custom Mapping Mode or Template Mode with `remap-colors = true`), you can apply
+transformations to any source color.
 
 ```toml
 [my_app.colors]
@@ -1954,18 +1936,17 @@ Transformations are always applied in a fixed, predictable order to ensure consi
 5. **Temperature**
 6. **Opacity**
 
-This means that a `brightness` adjustment will happen _after_ a `saturation` change, which can
-affect the final appearance.
+This means that a `brightness` adjustment will happen _after_ a `saturation` change, which can affect the final
+appearance.
 
-**Important**: When the output `color-format` does not support alpha (e.g., `hex6`, `rgb`), the
-`opacity` transformation is ignored and the color is treated as fully opaque.
+**Important**: When the output `color-format` does not support alpha (e.g., `hex6`, `rgb`), the `opacity` transformation
+is ignored and the color is treated as fully opaque.
 
 ### Supported Transformations
 
 #### 1. Hue
 
-Rotates the color around the color wheel. This is useful for creating analogous or complementary
-colors.
+Rotates the color around the color wheel. This is useful for creating analogous or complementary colors.
 
 - **Values**: A number between `-360` and `360` (degrees).
 - **Behavior**: Values outside this range are wrapped around (e.g., `370` becomes `10`).
@@ -1977,21 +1958,20 @@ colors.
 
 #### 2. Saturation
 
-Adjusts the intensity or vibrancy of a color. Lower values make the color more grayish, while higher
-values make it more vivid.
+Adjusts the intensity or vibrancy of a color. Lower values make the color more grayish, while higher values make it more
+vivid.
 
 - **Values**: A number, where `1.0` is the original saturation.
     - `0.0` is completely desaturated (grayscale).
     - `0.5` is 50% less saturated.
     - `1.5` is 50% more saturated.
 
-- **Range Clarification**: While any positive number is technically accepted, values significantly
-  outside the `0.0` to `3.0` range may lead to colors that are either fully desaturated or maximally
-  vibrant, potentially losing nuance. The recommended range of `0.0` to `3.0` is for predictable and
-  visually pleasing results.
+- **Range Clarification**: While any positive number is technically accepted, values significantly outside the `0.0` to
+  `3.0` range may lead to colors that are either fully desaturated or maximally vibrant, potentially losing nuance. The
+  recommended range of `0.0` to `3.0` is for predictable and visually pleasing results.
 
-- **Behavior**: Values are clamped internally to prevent extreme results, but it's best to stay
-  within recommended ranges.
+- **Behavior**: Values are clamped internally to prevent extreme results, but it's best to stay within recommended
+  ranges.
 
 - **Example**:
     ```toml
@@ -2008,13 +1988,12 @@ Adjusts the overall lightness or darkness of a color.
     - `0.8` makes the color 20% darker.
     - `1.2` makes the color 20% brighter.
 
-- **Range Clarification**: While any positive number is technically accepted, values significantly
-  outside the `0.0` to `3.0` range may lead to colors that are either fully black or maximally
-  bright, potentially losing nuance. The recommended range of `0.0` to `3.0` is for predictable and
-  visually pleasing results.
+- **Range Clarification**: While any positive number is technically accepted, values significantly outside the `0.0` to
+  `3.0` range may lead to colors that are either fully black or maximally bright, potentially losing nuance. The
+  recommended range of `0.0` to `3.0` is for predictable and visually pleasing results.
 
-- **Behavior**: Values are clamped internally to prevent extreme results, but it's best to stay
-  within recommended ranges.
+- **Behavior**: Values are clamped internally to prevent extreme results, but it's best to stay within recommended
+  ranges.
 
 - **Example**:
     ```toml
@@ -2024,16 +2003,16 @@ Adjusts the overall lightness or darkness of a color.
 
 #### 4. Contrast
 
-Adjusts the color's contrast by pushing it towards pure black or white, making it more distinct
-against a neutral background.
+Adjusts the color's contrast by pushing it towards pure black or white, making it more distinct against a neutral
+background.
 
 - **Values**: A number, where `1.0` is the original contrast.
     - Values > `1.0` increase contrast.
     - Values < `1.0` decrease contrast.
     - `0.0` results in a neutral gray.
-- **Behavior**: This transformation adjusts the color's distance from a neutral middle gray.
-  Increasing contrast pushes the color's components (red, green, blue) further towards the extremes
-  (0 or 255), while decreasing it pulls them closer to the middle (128).
+- **Behavior**: This transformation adjusts the color's distance from a neutral middle gray. Increasing contrast pushes
+  the color's components (red, green, blue) further towards the extremes (0 or 255), while decreasing it pulls them
+  closer to the middle (128).
 - **Example**:
     ```toml
     high_contrast_text = { source = "text-primary", contrast = 1.2 } # Push text closer to pure white
@@ -2042,8 +2021,7 @@ against a neutral background.
 
 #### 5. Temperature
 
-Makes the color "warmer" (more red/orange) or "cooler" (more blue). This is an intuitive way to
-shift color tones.
+Makes the color "warmer" (more red/orange) or "cooler" (more blue). This is an intuitive way to shift color tones.
 
 - **Values**: A number between `-100` (coolest) and `100` (warmest). `0` is neutral.
 - **Behavior**: Values outside `-100` to `100` are clamped to these limits.
@@ -2377,10 +2355,8 @@ bright_white = { source = "ansi-15" }
 These errors will prevent Luminol from running:
 
 - **Missing required fields**: `enabled`, `output-file`, `color-format`, or `syntax` not specified.
-- **Invalid `color-format`**: Value is not one of: `hex6`, `hex8`, `rgb`, `rgba`, `rgb_decimal`,
-  `rgba_decimal`.
-- **`remap-colors = true` without `[app.colors]` table**: Explicit remapping intent requires color
-  definitions.
+- **Invalid `color-format`**: Value is not one of: `hex6`, `hex8`, `rgb`, `rgba`, `rgb_decimal`, `rgba_decimal`.
+- **`remap-colors = true` without `[app.colors]` table**: Explicit remapping intent requires color definitions.
 - **Template file not found**: Specified template path doesn't exist.
 - **Invalid `syntax` in Template Mode**: Syntax doesn't contain the word `placeholder`.
 - **Invalid source color name**: Source refers to a non-existent semantic color.
@@ -2437,14 +2413,11 @@ These situations are handled gracefully:
 
 2. **Validate after changes**: Always check your output files after modifying configuration.
 
-3. **Use descriptive names**: In Custom Mapping Mode, use names that make sense for your
-   application.
+3. **Use descriptive names**: In Custom Mapping Mode, use names that make sense for your application.
 
-4. **Keep transformations moderate**: Stay within recommended ranges (0.0-3.0 for
-   brightness/saturation).
+4. **Keep transformations moderate**: Stay within recommended ranges (0.0-3.0 for brightness/saturation).
 
-5. **Document your templates**: Add comments in template files to explain what each placeholder
-   does.
+5. **Document your templates**: Add comments in template files to explain what each placeholder does.
 
 6. **Test incrementally**: When setting up complex configurations, enable one app at a time.
 
@@ -2471,11 +2444,9 @@ These situations are handled gracefully:
 
 1. **Keep original config as reference**: Before creating a template, back up your original config.
 
-2. **Test placeholder patterns**: Verify your `syntax` pattern matches exactly what's in the
-   template.
+2. **Test placeholder patterns**: Verify your `syntax` pattern matches exactly what's in the template.
 
-3. **Use consistent placeholder style**: Don't mix different placeholder styles in the same
-   template.
+3. **Use consistent placeholder style**: Don't mix different placeholder styles in the same template.
 
 ### Transformation Best Practices
 
@@ -2498,8 +2469,7 @@ These situations are handled gracefully:
 
 1. **Minimize enabled apps**: Only enable applications you actually use.
 
-2. **Use cache for temporary files**: Use relative paths in `output-file` for frequently changing
-   files.
+2. **Use cache for temporary files**: Use relative paths in `output-file` for frequently changing files.
 
 3. **Batch reload commands**: Group related reload commands together to reduce overhead.
 
@@ -2536,8 +2506,7 @@ These situations are handled gracefully:
 **Solutions:**
 
 1. Keep transformation values within recommended ranges
-2. Remember transformations apply in fixed order (hue → saturation → brightness → contrast →
-   temperature → opacity)
+2. Remember transformations apply in fixed order (hue → saturation → brightness → contrast → temperature → opacity)
 3. Use `hex8`, `rgba`, or `rgba_decimal` for opacity support
 
 #### Issue: Configuration error about missing [app.colors]

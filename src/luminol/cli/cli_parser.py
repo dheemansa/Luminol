@@ -2,14 +2,14 @@ import argparse
 from pathlib import Path
 import sys
 
+from ..constants import VALID_IMAGE_EXTENSIONS
+
 
 ##TODO validate image using imghdr for corrupt files
 def image_path(path: str) -> Path:
     """Custom type for argparse to validate an image path."""
-    VALID_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"}
 
-    ##  TODO REFACTOR: do we really need resolve
-    ##  NOTE: shell automatically converts relative path and pass to the tool
+    # Use .resolve() to create a robust, absolute path that handles relative paths and symlinks.
     absolute_path = Path(path).resolve()
     if not absolute_path.is_file():
         raise argparse.ArgumentTypeError(f"File not found: {absolute_path}")
@@ -27,7 +27,8 @@ def parse_arguments():
     """Parses command-line arguments for the luminol application."""
     parser = argparse.ArgumentParser(
         prog="luminol",
-        description="A tool to generate color palettes from images and apply them to system configs.",
+        description="A tool to generate color palettes \
+        from images and apply them to system configs.",
     )
 
     parser.add_argument(
@@ -46,7 +47,8 @@ def parse_arguments():
         "-q",
         "--quality",
         # default="balanced",
-        # NOTE:The quality flag default is not set here to avoid argparse treating it as user-provided.
+        # NOTE:The quality flag default is not set here to avoid
+        # argparse treating it as user-provided.
         # This prevents commands unrelated to image processing (like --validate) from
         # incorrectly triggering dependency errors due to an implicit "balanced" default.
         # Instead, the default is applied later in main() after parsing.
@@ -64,7 +66,9 @@ def parse_arguments():
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Generate colors but do not write them to their final destination files.",
+        help="Generate colors and palettes. \
+        The generated palette is saved to cache, but it is not written to its final destination files,\
+        wallpaper is not set, and reload commands are not executed.",
     )
 
     parser.add_argument(
@@ -76,7 +80,8 @@ def parse_arguments():
     parser.add_argument(
         "--validate",
         action="store_true",
-        help="Validate the configuration file and exit. All other flags are ignored, except for --verbose.",
+        help="Validate the configuration file and exit.\
+        All other flags are ignored, except for --verbose.",
     )
 
     # show help if no arguments are passed

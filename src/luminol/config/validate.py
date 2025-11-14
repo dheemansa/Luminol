@@ -1,8 +1,10 @@
 import logging
-from pathlib import Path
-from ..utils.path import _expand_path, get_luminol_dir
 import os
+from pathlib import Path
+
 from ..cli.term_colors import AnsiColors
+from ..constants import AVAILABLE_COLORS, SUPPORTED_COLOR_FORMATS
+from ..utils.path import _expand_path, get_luminol_dir
 
 WARN = AnsiColors.WARNING
 
@@ -97,46 +99,6 @@ def validate_application_config(application_config: dict) -> bool:
     error_count = 0
     warning_count = 0
 
-    AVAILABLE_COLORS = (
-        "bg-primary",
-        "bg-secondary",
-        "bg-tertiary",
-        "text-primary",
-        "text-secondary",
-        "text-tertiary",
-        "accent-primary",
-        "accent-secondary",
-        "error-color",
-        "warning-color",
-        "success-color",
-        "border-active",
-        "border-inactive",
-        "ansi-0",  # Black
-        "ansi-1",  # Red
-        "ansi-2",  # Green
-        "ansi-3",  # Yellow
-        "ansi-4",  # Blue
-        "ansi-5",  # Magenta
-        "ansi-6",  # Cyan
-        "ansi-7",  # White
-        "ansi-8",  # Bright Black
-        "ansi-9",  # Bright Red
-        "ansi-10",  # Bright Green
-        "ansi-11",  # Bright Yellow
-        "ansi-12",  # Bright Blue
-        "ansi-13",  # Bright Magenta
-        "ansi-14",  # Bright Cyan
-        "ansi-15",  # Bright White
-    )
-
-    SUPPORTED_COLOR_FORMATS = (
-        "hex6",
-        "hex8",
-        "rgb",
-        "rgba",
-        "rgb_decimal",
-        "rgba_decimal",
-    )
     # Mandatory options for each application section.
     MANDATORY_OPTIONS: set = {"enabled", "output-file", "color-format", "syntax"}
 
@@ -273,7 +235,7 @@ def validate_application_config(application_config: dict) -> bool:
                             error_count += 1
                             logging.error(
                                 f"Invalid source color '{ERR}{source}{RESET}' for '{WARN}{color_name}{RESET}' in {INFO}[{application}.colors]{RESET}.\n"
-                                f"{' ' * 8}Available colors: {INFO}{', '.join(AVAILABLE_COLORS)}{RESET}"
+                                f"{' ' * 8}Available colors: {INFO}{', '.join(AVAILABLE_COLORS)}{RESET}\n"
                             )
 
                     # check for transformation
