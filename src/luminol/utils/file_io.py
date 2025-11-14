@@ -29,11 +29,13 @@ def write_file(file_path: str, content: str | list[str]) -> Path | None:
 
         # Write the content
         output_path.write_text(content, encoding="utf-8")
-        logging.info(f"Successfully wrote file to: {output_path}")
+        logging.info("Successfully wrote file to: %s", output_path)
         return output_path
     except IOError as e:
-        logging.error(f"Failed to write file at {file_path}: {e}")
+        logging.error("Failed to write file at %s: %s", file_path, e)
         return None
     except Exception as e:
-        logging.error(f"An unexpected error occurred while writing to {file_path}: {e}")
+        logging.error(
+            "An unexpected error occurred while writing to %s: %s", file_path, e
+        )
         return None

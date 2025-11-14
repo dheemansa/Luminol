@@ -56,7 +56,7 @@ def get_luminol_dir(custom_config_dir: str | None = None) -> Path:
         if xdg_path.is_dir():
             luminol_path = xdg_path / "luminol"
             if luminol_path.is_dir():
-                logging.debug(f"Using XDG config: {luminol_path}")
+                logging.debug("Using XDG config: %s", luminol_path)
                 return luminol_path
 
     logging.debug("$XDG_CONFIG_HOME/luminol not found")
@@ -64,7 +64,7 @@ def get_luminol_dir(custom_config_dir: str | None = None) -> Path:
     # Fallback to ~/.config/luminol
     home_config = Path.home() / ".config" / "luminol"
     if home_config.is_dir():
-        logging.debug(f"Using home config: {home_config}")
+        logging.debug("Using home config: %s", home_config)
         return home_config
 
     raise FileNotFoundError(
@@ -146,7 +146,7 @@ def get_log_dir(custom_log_dir: str | None = None) -> Path:
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_path = base_log_path / "logs" / timestamp
     log_path.mkdir(parents=True, exist_ok=True)
-    logging.debug(f"Using log directory: {log_path}")
+    logging.debug("Using log directory: %s", log_path)
     return log_path
 
 
@@ -169,7 +169,7 @@ def clear_old_logs(days: int = 7) -> None:
         logging.debug("Log directory base does not exist, skipping cleanup.")
         return
 
-    logging.info(f"Checking for logs older than {days} days in {base_log_path}")
+    logging.info("Checking for logs older than %s days in %s", days, base_log_path)
     now = datetime.now()
     cutoff = timedelta(days=days)
 
@@ -180,15 +180,15 @@ def clear_old_logs(days: int = 7) -> None:
         try:
             log_time = datetime.strptime(log_dir.name, "%Y-%m-%d_%H-%M-%S")
             if now - log_time > cutoff:
-                logging.info(f"Removing old log directory: {log_dir}")
+                logging.info("Removing old log directory: %s", log_dir)
                 shutil.rmtree(log_dir)
         except ValueError:
             # Ignore directories that don't match the timestamp format
             logging.debug(
-                f"Skipping cleanup for non-timestamped directory: {log_dir.name}"
+                "Skipping cleanup for non-timestamped directory: %s", log_dir.name
             )
         except Exception as e:
-            logging.error(f"Failed to remove directory {log_dir}: {e}")
+            logging.error("Failed to remove directory %s: %s", log_dir, e)
 
 
 def clear_directory(dir_path: str | Path, recreate: bool = True) -> None:
@@ -206,16 +206,16 @@ def clear_directory(dir_path: str | Path, recreate: bool = True) -> None:
         path = Path(dir_path)
         if path.exists():
             shutil.rmtree(path)
-            logging.info(f"Removed: {path}")
+            logging.info("Removed: %s", path)
         else:
-            logging.debug(f"Skipped (doesn't exist): {path}")
+            logging.debug("Skipped (doesn't exist): %s", path)
 
         if recreate:
             path.mkdir(parents=True, exist_ok=True)
-            logging.debug(f"Recreated: {path}")
+            logging.debug("Recreated: %s", path)
 
     except Exception as e:
-        logging.critical(f"Failed to clear '{dir_path}': {e}")
+        logging.critical("Failed to clear '%s': %s", dir_path, e)
         raise
 
 
@@ -252,5 +252,5 @@ def save_to_cache(
     else:
         file_path.write_bytes(content)
 
-    logging.debug(f"Saved to cache: {file_path}")
+    logging.debug("Saved to cache: %s", file_path)
     return file_path

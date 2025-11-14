@@ -64,7 +64,7 @@ def main():
 
         extract_end_time = time.perf_counter()
         duration = extract_end_time - extract_start_time
-        logging.info(f"Color Extraction took {duration:.4f} seconds")
+        logging.info("Color Extraction took %.4f seconds", duration)
         raise SystemExit(0)
 
     LUMINOL_CONFIG_DIR = get_luminol_dir()
@@ -78,7 +78,7 @@ def main():
         raise SystemExit(1)
 
     except Exception as e:
-        logging.error(f"Failed to load configuration: {e}")
+        logging.error("Failed to load configuration: %s", e)
         raise SystemExit(1)  # exit with exit code 1
 
     # if validation_flag is true then stop the program just after validation
@@ -120,7 +120,7 @@ def main():
 
     # clear cache
     clear_directory(dir_path=LUMINOL_CACHE_DIR, recreate=True)
-    logging.info(f"Cache Cleared")
+    logging.info("Cache Cleared")
 
     # if theme is set in cli then override the theme_type in config
     if theme_type_flag is not None:
@@ -131,7 +131,7 @@ def main():
         )
 
     assign_end_time = time.perf_counter()
-    logging.info(f"Color assign took {assign_end_time - assign_start_time}")
+    logging.info("Color assign took %s", assign_end_time - assign_start_time)
 
     # TODO: create and save palette files to cache and use dry_run_flag and then copy files to specified directory
     # TODO: also make a tty reload similar to pywall and also implement a config setting in config.toml to enable/disable tty-reload=false

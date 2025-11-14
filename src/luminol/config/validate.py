@@ -151,7 +151,13 @@ def validate_application_config(application_config: dict) -> bool:
                 f"'{option}'" for option in missing_mandatory_options
             )
             logging.error(
-                f"Missing mandatory option {WARN}{missing_options}{RESET} in {INFO}[{application}]{RESET}"
+                "Missing mandatory option %s%s%s in %s[%s]%s",
+                WARN,
+                missing_options,
+                RESET,
+                INFO,
+                application,
+                RESET,
             )
             error_count += 1
 
@@ -174,7 +180,12 @@ def validate_application_config(application_config: dict) -> bool:
         # indicating it's a path and not just a filename.
         if output_file is not None and not output_file.strip():
             logging.error(
-                f"'{ERR}output-file{RESET}' cannot be empty, Error in {INFO}{application}{RESET}"
+                "'%soutput-file%s' cannot be empty, Error in %s%s%s",
+                ERR,
+                RESET,
+                INFO,
+                application,
+                RESET,
             )
             error_count += 1
 
@@ -187,12 +198,24 @@ def validate_application_config(application_config: dict) -> bool:
                 # check for write permission if exists
                 if not os.access(parent_file_path, os.W_OK):
                     logging.error(
-                        f"Cannot write to directory: '{ERR}{parent_file_path}{RESET}' for {INFO}[{application}]{RESET}. Check permissions."
+                        "Cannot write to directory: '%s%s%s' for %s[%s]%s. Check permissions.",
+                        ERR,
+                        parent_file_path,
+                        RESET,
+                        INFO,
+                        application,
+                        RESET,
                     )
                     error_count += 1
             else:
                 logging.error(
-                    f"No such directory exists: {WARN}{parent_file_path}{RESET}, for {INFO}[{application}]{RESET}",
+                    "No such directory exists: %s%s%s, for %s[%s]%s",
+                    WARN,
+                    parent_file_path,
+                    RESET,
+                    INFO,
+                    application,
+                    RESET,
                 )
                 error_count += 1
 
@@ -202,7 +225,12 @@ def validate_application_config(application_config: dict) -> bool:
             remap_dict: dict | None = application_options.get("colors", None)
             if remap_dict is None:
                 logging.error(
-                    f"{INFO}[{application}]{RESET} has remap-colors set to true,{WARN} but no 'colors' table for was found.{RESET}"
+                    "%s[%s]%s has remap-colors set to true,%s but no 'colors' table for was found.%s",
+                    INFO,
+                    application,
+                    RESET,
+                    WARN,
+                    RESET,
                 )
                 error_count += 1
 
@@ -228,7 +256,9 @@ def validate_application_config(application_config: dict) -> bool:
                     if source is None:
                         error_count += 1
                         logging.error(
-                            f"No source color defined for '{color_name}' in [{application}.colors]"
+                            "No source color defined for '%s' in [%s.colors]",
+                            color_name,
+                            application,
                         )
                     else:
                         if source not in AVAILABLE_COLORS:
@@ -321,7 +351,13 @@ def validate_application_config(application_config: dict) -> bool:
 
             if not template_path.is_file():
                 logging.error(
-                    f"No such template exists: {ERR}{template_path}{RESET} for {INFO}[{application}]{RESET}"
+                    "No such template exists: %s%s%s for %s[%s]%s",
+                    ERR,
+                    template_path,
+                    RESET,
+                    INFO,
+                    application,
+                    RESET,
                 )
                 error_count += 1
 
@@ -337,13 +373,15 @@ def validate_application_config(application_config: dict) -> bool:
             if syntax:
                 if "{name}" not in syntax:
                     logging.warning(
-                        f"No {{name}} token found in syntax for [{application}]. Ignore if intentional"
+                        "No {name} token found in syntax for [%s]. Ignore if intentional",
+                        application,
                     )
                     warning_count += 1
 
                 if "{color}" not in syntax:
                     logging.warning(
-                        f"No {{color}} token found in syntax for [{application}]. Ignore if intentional"
+                        "No {color} token found in syntax for [%s]. Ignore if intentional",
+                        application,
                     )
                     warning_count += 1
 
