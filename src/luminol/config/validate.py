@@ -60,7 +60,7 @@ def warn_unsupported_option(
         for i in invalid_options:
             logging.warning(
                 f"Unknown option '{WARN}{i}{RESET}' in {INFO}{location}{RESET}.\n"
-                f"{' ' * 10}Supported: {INFO}{', '.join(supported_options)}{RESET}"
+                f"{' ' * 10}Supported: {INFO}{', '.join(supported_options)}{RESET}\n"
             )
 
 
@@ -201,7 +201,7 @@ def validate_application_config(application_config: dict) -> bool:
                 logging.error(
                     f"Invalid value for option '{WARN}color-format{RESET}' in {INFO}[{application}]{RESET}.\n"
                     # using {' '* 8} to match indentation with the previous line
-                    f"{' ' * 8}Got '{ERR}{color_format}{RESET}', supported formats are: {INFO}{', '.join(SUPPORTED_COLOR_FORMATS)}{RESET}",
+                    f"{' ' * 8}Got '{ERR}{color_format}{RESET}', supported formats are: {INFO}{', '.join(SUPPORTED_COLOR_FORMATS)}{RESET}\n",
                 )
                 error_count += 1
 
@@ -240,13 +240,13 @@ def validate_application_config(application_config: dict) -> bool:
             remap_dict: dict | None = application_options.get("colors", None)
             if remap_dict is None:
                 logging.error(
-                    f"'{INFO}{application}{RESET}' has remap-colors set to true,{WARN} but no 'colors' table for was found.{RESET} \n"
+                    f"{INFO}[{application}]{RESET} has remap-colors set to true,{WARN} but no 'colors' table for was found.{RESET}"
                 )
                 error_count += 1
 
             elif len(remap_dict) == 0:
                 logging.error(
-                    f"'{INFO}{application}{RESET}' has remap-colors set to true, "
+                    f"{INFO}[{application}]{RESET} has remap-colors set to true, "
                     f"but the '{WARN}[{application}.colors]{RESET}' table is empty.\n"
                 )
                 error_count += 1
@@ -293,7 +293,7 @@ def validate_application_config(application_config: dict) -> bool:
                         ):
                             logging.error(
                                 f"Unsupported transformation '{WARN}{transformation}{RESET}' for color '{WARN}{color_name}{RESET}' in {INFO}[{application}.colors]{RESET}. "
-                                f"Supported transformations are: {INFO}hue, saturation, brightness, contrast, temperature, opacity{RESET}."
+                                f"Supported transformations are: {INFO}hue, saturation, brightness, contrast, temperature, opacity{RESET}.\n"
                             )
                             continue  # no further check needed as the transformation was not suppoerted
 
@@ -358,7 +358,9 @@ def validate_application_config(application_config: dict) -> bool:
                 template_path = _expand_path(template)
 
             if not template_path.is_file():
-                logging.error(f"No such file exists: {template_path}")
+                logging.error(
+                    f"No such template exists: {ERR}{template_path}{RESET} for {INFO}[{application}]{RESET}"
+                )
                 error_count += 1
 
             syntax: str = application_options.get("syntax", "")  # type: ignore
@@ -373,13 +375,13 @@ def validate_application_config(application_config: dict) -> bool:
             if syntax:
                 if "{name}" not in syntax:
                     logging.warning(
-                        f"No {{name}} token found in syntax for {application}. Ignore if intentional"
+                        f"No {{name}} token found in syntax for [{application}]. Ignore if intentional"
                     )
                     warning_count += 1
 
                 if "{color}" not in syntax:
                     logging.warning(
-                        f"No {{color}} token found in syntax for {application}. Ignore if intentional"
+                        f"No {{color}} token found in syntax for [{application}]. Ignore if intentional"
                     )
                     warning_count += 1
 
