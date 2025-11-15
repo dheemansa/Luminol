@@ -2,14 +2,14 @@ import argparse
 from pathlib import Path
 import sys
 
-from ..constants import VALID_IMAGE_EXTENSIONS
+from ..core.constants import VALID_IMAGE_EXTENSIONS
 
 
 ##TODO validate image using imghdr for corrupt files
 def image_path(path: str) -> Path:
     """Custom type for argparse to validate an image path."""
 
-    # Use .resolve() to create a robust, absolute path that handles relative paths and symlinks.
+    # .resolve() to handel symlinks.
     absolute_path = Path(path).resolve()
     if not absolute_path.is_file():
         raise argparse.ArgumentTypeError(f"File not found: {absolute_path}")

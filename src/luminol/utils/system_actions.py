@@ -1,11 +1,12 @@
-import logging
-import subprocess
-import shlex
-from pathlib import Path
 from datetime import datetime
-import re  # Added import
-from ..exceptions.exceptions import WallpaperSetError
+import logging
+from pathlib import Path
+import re
+import shlex
+import subprocess
+
 from ..cli.term_colors import AnsiColors
+from ..exceptions.exceptions import WallpaperSetError
 from ..utils.path import _expand_path
 
 ERR = AnsiColors.ERROR
@@ -20,7 +21,7 @@ def _sanitize_filename(s: str, max_len: int = 40) -> str:
     """
     # Replace spaces and other common separators with underscores
     s = re.sub(r"[\s/|&;]+", "_", s)
-    # Remove any characters that are not alphanumeric, underscore, hyphen, or period
+    # Remove characters that are not alphanumeric, underscore, hyphen, or period
     s = re.sub(r"[^\w\-._]", "", s)
     # Remove leading/trailing underscores
     s = s.strip("_")
@@ -41,9 +42,13 @@ def _run_detached_command(
     if not log_dir:
         try:
             if use_shell is False:
-                subprocess.Popen(command_args_list, start_new_session=True)
+                subprocess.Popen(  # pylint: disable=consider-using-with
+                    command_args_list, start_new_session=True
+                )
             else:
-                subprocess.Popen(command, shell=True, start_new_session=True)
+                subprocess.Popen(  # pylint: disable=consider-using-with
+                    command, shell=True, start_new_session=True
+                )
 
             logging.info("Successfully launched '%s' without logging.", command)
         except OSError as e:
@@ -54,51 +59,47 @@ def _run_detached_command(
         expanded_log_dir = _expand_path(log_dir)
 
         expanded_log_dir.mkdir(parents=True, exist_ok=True)
-        # Use the full command string to create a unique, sanitized log filename
+        # Use full command string to create a unique, sanitized log filename
         sanitized_command_name = _sanitize_filename(command)
         log_path = expanded_log_dir / f"{sanitized_command_name}.log"
 
-        # some reload commands might be used multiple time, in order to prevent overwriting
+        # some reload commands might be used multiple time,
+        # in order to prevent overwriting
         # using append mode instead of write
-        log_file = open(log_path, "a")
-
-        log_file.write(
-            f"****[Date: {datetime.now().date()}][Time: {datetime.now().strftime('%H:%M:%S')}]****\n\n"
-        )
-        log_file.write(f"Command: {command}\n\n")
-        log_file.write(f"{'*' * 50}  Logging Started  {'*' * 50}\n\n")
-        if use_shell is False:
-            subprocess.Popen(
-                command_args_list,
-                stdout=log_file,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
+        with open(log_path, "a", encoding="utf-8") as log_file:
+            log_file.write(
+                f"****[Date: {datetime.now().date()}]\
+                [Time: {datetime.now().strftime('%H:%M:%S')}]****\n\n"
             )
-        else:
-            subprocess.Popen(
-                command,
-                shell=True,
-                stdout=log_file,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
-            )
-
-        # TODO: Verify if closing the file handle here is robust. The Popen'd
-        # child process inherits the file descriptor, but closing it in the
-        # parent immediately after launch might lead to race conditions or
-        # lost output on some platforms.
-        log_file.close()
+            log_file.write(f"Command: {command}\n\n")
+            log_file.write(f"{'*' * 50}  Logging Started  {'*' * 50}\n\n")
+            if use_shell is False:
+                subprocess.Popen(  # pylint: disable=consider-using-with
+                    command_args_list,
+                    stdout=log_file,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+            else:
+                subprocess.Popen(  # pylint: disable=consider-using-with
+                    command,
+                    shell=True,
+                    stdout=log_file,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
 
         logging.info("Successfully launched '%s' with logging to %s", command, log_path)
+
     except OSError as e:
         logging.error("Failed to launch '%s': %s", command, e)
-    except Exception as e:
+
+    except (ValueError, subprocess.SubprocessError) as e:
         logging.error(
             "An unexpected error occurred while trying to run '%s': %s", command, e
         )
 
 
-# HACK improve these functions using async functions might work
 def apply_wallpaper(
     wallpaper_set_command: str,
     image_path: str | Path,
@@ -128,7 +129,7 @@ def apply_wallpaper(
         _run_detached_command(command=final_command, log_dir=log_dir, use_shell=False)
 
     except Exception as e:
-        raise WallpaperSetError(f"Failed to launch wallpaper command: {e}")
+        raise WallpaperSetError(f"Failed to launch wallpaper command") from e
 
 
 def run_reload_commands(
@@ -155,7 +156,8 @@ def run_reload_commands(
                 _run_detached_command(command=cmd, log_dir=log_dir, use_shell=True)
             else:
                 _run_detached_command(command=cmd, log_dir=log_dir, use_shell=False)
-        except Exception as e:
+
+        except (OSError, ValueError, subprocess.SubprocessError) as e:
             logging.error(
                 "An unexpected error occurred while trying to run '%s': %s", cmd, e
             )

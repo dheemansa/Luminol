@@ -1,10 +1,11 @@
 import colorsys
-from ..utils.data_types import RGB, RGBA
+from ..core.data_types import RGB, RGBA
 
 
 def _hsv_transform(r, g, b, hue_shift=0, sat_factor=1.0, bright_factor=1.0):
     """
-    Apply hue, saturation, and brightness transformations using the HSV color space.
+    Apply hue, saturation, and brightness transformations
+    using the HSV color space.
     """
     r_norm, g_norm, b_norm = r / 255.0, g / 255.0, b / 255.0
     h, s, v = colorsys.rgb_to_hsv(r_norm, g_norm, b_norm)
@@ -31,7 +32,8 @@ def _temperature(r, g, b, value=0):
 
     Args:
         r, g, b (int): RGB values (0-255)
-        value (float): Temperature shift (-100=cooler/blue, 0=unchanged, +100=warmer/orange)
+        value (float): Temperature shift
+                       (-100=cooler/blue, 0=unchanged, +100=warmer/orange)
 
     Returns:
         tuple: Adjusted (r, g, b) values
@@ -58,7 +60,8 @@ def _contrast(r, g, b, value=1.0):
 
     Args:
         r, g, b (int): RGB values (0-255)
-        value (float): Contrast factor (0.0=no contrast, 1.0=unchanged, 2.0+=high contrast)
+        value (float): Contrast factor
+                       (0.0=no contrast, 1.0=unchanged, 2.0+=high contrast)
 
     Returns:
         tuple: Adjusted (r, g, b) values
@@ -92,7 +95,8 @@ def _transform_color(
 ) -> RGBA:
     r, g, b = rgb.r, rgb.g, rgb.b
 
-    # Set initial alpha. If an RGBA is passed, use its alpha, otherwise default to 1.0
+    # Set initial alpha. If an RGBA is passed, use its alpha,
+    # otherwise default to 1.0
     a = rgb.a if isinstance(rgb, RGBA) else 1.0
 
     # Handle HSV transformations
