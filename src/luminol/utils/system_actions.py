@@ -129,7 +129,7 @@ def apply_wallpaper(
         _run_detached_command(command=final_command, log_dir=log_dir, use_shell=False)
 
     except Exception as e:
-        raise WallpaperSetError(f"Failed to launch wallpaper command") from e
+        raise WallpaperSetError("Failed to launch wallpaper command") from e
 
 
 def run_reload_commands(
