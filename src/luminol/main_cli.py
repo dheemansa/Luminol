@@ -7,7 +7,8 @@ from .cli.term_colors import AnsiColors
 from .color.assign import assign_color
 from .color.extraction import get_colors
 from .config.parser import Config, load_config
-from .core.system_actions import apply_wallpaper, run_reload_commands
+from .core.constants import TEST_PRESET  # TODO: remove this after testing
+from .utils.system_actions import apply_wallpaper, run_reload_commands
 from .exceptions.exceptions import InvalidConfigError, WallpaperSetError
 from .utils.logging_config import configure_logging
 from .utils.path import (
@@ -20,6 +21,9 @@ from .utils.path import (
 
 
 # TODO later use Luminol package to create the cli
+
+LUMINOL_CONFIG_DIR = get_luminol_dir()
+LUMINOL_CACHE_DIR = get_cache_dir()
 
 
 def main():
@@ -67,19 +71,16 @@ def main():
         logging.info("Color Extraction took %.4f seconds", duration)
         raise SystemExit(0)
 
-    LUMINOL_CONFIG_DIR = get_luminol_dir()
-    LUMINOL_CACHE_DIR = get_cache_dir()
-
     try:
         raw_config = load_config(config_file_path=LUMINOL_CONFIG_DIR / "config.toml")
         config = Config(config_data=raw_config)
     except InvalidConfigError as e:
         print(f"\n{e}")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     except Exception as e:
         logging.error("Failed to load configuration: %s", e)
-        raise SystemExit(1)  # exit with exit code 1
+        raise SystemExit(1) from e  # exit with exit code 1
 
     # if validation_flag is true then stop the program just after validation
     if validate_flag is True:
@@ -104,11 +105,11 @@ def main():
                 )
             except WallpaperSetError as e:
                 logging.error(e)
-                raise SystemExit(1)
+                raise SystemExit(1) from e
 
             except Exception as e:
                 logging.error(e)
-                raise SystemExit(1)
+                raise SystemExit(1) from e
 
     color_data = get_colors(
         image_path=image_path, num_colors=8, preset=quality_flag, sort_by="luma"
@@ -149,7 +150,7 @@ def main():
 
             except Exception as e:
                 logging.exception(e)
-                raise SystemExit(1)
+                raise SystemExit(1) from e
 
 
 if __name__ == "__main__":

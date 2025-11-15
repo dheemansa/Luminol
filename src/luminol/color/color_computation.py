@@ -1,4 +1,4 @@
-from ..utils.data_types import RGB
+from ..core.data_types import RGB
 
 GAMMA = 2.4
 INV_GAMMA = 1 / GAMMA

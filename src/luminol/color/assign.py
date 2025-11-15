@@ -1,6 +1,6 @@
 import logging
 
-from ..utils.data_types import ColorData, RGB
+from ..core.data_types import ColorData, RGB
 from .color_computation import (
     _find_optimal_blend_for_contrast,
     _is_near_white,
