@@ -11,6 +11,8 @@ from .core.constants import TEST_PRESET  # TODO: remove this after testing
 from .utils.system_actions import apply_wallpaper, run_reload_commands
 from .exceptions.exceptions import InvalidConfigError, WallpaperSetError
 from .utils.logging_config import configure_logging
+from .utils.palette_generator import compile_color_syntax
+from .utils.file_io import write_file
 from .utils.path import (
     clear_directory,
     clear_old_logs,
@@ -18,7 +20,6 @@ from .utils.path import (
     get_log_dir,
     get_luminol_dir,
 )
-
 
 # TODO later use Luminol package to create the cli
 
@@ -134,8 +135,33 @@ def main():
     assign_end_time = time.perf_counter()
     logging.info("Color assign took %s", assign_end_time - assign_start_time)
 
-    # TODO: create and save palette files to cache and use dry_run_flag and then copy files to specified directory
-    # TODO: also make a tty reload similar to pywall and also implement a config setting in config.toml to enable/disable tty-reload=false
+    # create palette
+    enabled_apps: list = config.enabled_apps
+
+    for app in enabled_apps:
+        app_settings = config.get_app(app)
+        output_dir: Path = Path(app_settings.output_file)
+
+        ## first save in cache: <cache_dir>/<app_name>/<file_name>
+        cache_save_dir = LUMINOL_CACHE_DIR / f"{app}" / output_dir.name
+        if not app_settings.template:
+            app_syntax: str = app_settings.syntax
+            app_color_format: str = app_settings.color_format
+            remap: bool = app_settings.remap_colors
+            if remap:
+                app_remap = app_settings.colors
+            else:
+                app_remap = None
+
+            palette_list: list = compile_color_syntax(
+                named_colors=TEST_PRESET,
+                syntax=app_syntax,
+                color_format=app_color_format,
+                remap=app_remap,
+            )
+            write_file(file_path=cache_save_dir, content=palette_list)
+
+    # TODO: also make a tty reload similar to pywall
 
     if dry_run_flag is False:
         # NOTE: this will be the last step
