@@ -7,12 +7,11 @@ from .cli.term_colors import AnsiColors
 from .color.assign import assign_color
 from .color.extraction import get_colors
 from .config.parser import Config, load_config
-from .core.constants import TEST_PRESET  # TODO: remove this after testing
-from .utils.system_actions import apply_wallpaper, run_reload_commands
+from .core.constants import TEST_PRESET
 from .exceptions.exceptions import InvalidConfigError, WallpaperSetError
+from .utils.file_io import write_file
 from .utils.logging_config import configure_logging
 from .utils.palette_generator import compile_color_syntax
-from .utils.file_io import write_file
 from .utils.path import (
     clear_directory,
     clear_old_logs,
@@ -20,6 +19,7 @@ from .utils.path import (
     get_log_dir,
     get_luminol_dir,
 )
+from .utils.system_actions import apply_wallpaper, run_reload_commands
 
 # TODO later use Luminol package to create the cli
 
@@ -34,9 +34,6 @@ def main():
 
     # if args.verbvose is true, then enable verbose logging
     configure_logging(verbose=args.verbose)
-
-    # Clean up old log files before this run
-    clear_old_logs()
 
     # verbose_flag: bool = args.verbose
     image_path: str = args.image
@@ -138,6 +135,7 @@ def main():
     # create palette
     enabled_apps: list = config.enabled_apps
 
+    palette_start_time = time.perf_counter()
     for app in enabled_apps:
         app_settings = config.get_app(app)
         output_dir: Path = Path(app_settings.output_file)
@@ -160,6 +158,8 @@ def main():
                 remap=app_remap,
             )
             write_file(file_path=cache_save_dir, content=palette_list)
+    palette_end_time = time.perf_counter()
+    logging.info("Palette export took %s", palette_end_time - palette_start_time)
 
     # TODO: also make a tty reload similar to pywall
 
@@ -177,6 +177,8 @@ def main():
             except Exception as e:
                 logging.exception(e)
                 raise SystemExit(1) from e
+
+    clear_old_logs()
 
 
 if __name__ == "__main__":
