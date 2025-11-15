@@ -2603,7 +2603,7 @@ For Template Mode:
 ### rgb_decimal
 
 - Format: `(R, G, B)`
-- Example: `(100, 149, 255)`
+- Example: `100, 149, 255`
 - Alpha support: No
 
 ### rgba
@@ -2616,5 +2616,5 @@ For Template Mode:
 ### rgba_decimal
 
 - Format: `(R, G, B, A)`
-- Example: `(100, 149, 255, 0.8)`
+- Example: `100, 149, 255, 0.8`
 - Alpha support: Yes
