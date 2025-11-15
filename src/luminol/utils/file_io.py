@@ -4,7 +4,7 @@ from pathlib import Path
 from .path import _expand_path
 
 
-def write_file(file_path: str, content: str | list[str]) -> Path | None:
+def write_file(file_path: str | Path, content: str | list[str]) -> Path | None:
     """
     Writes content to a specified file path.
     This function handles path expansion (e.g., '~' for home directory)

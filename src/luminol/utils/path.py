@@ -191,13 +191,13 @@ def clear_old_logs(days: int = 7) -> None:
             logging.error("Failed to remove directory %s: %s", log_dir, e)
 
 
-def clear_directory(dir_path: str | Path, recreate: bool = True) -> None:
+def clear_directory(dir_path: str | Path, preserve_dir: bool = True) -> None:
     """
     Clear a directory by removing all its contents.
 
     Args:
         dir_path: Path to the directory to clear
-        recreate: If True, recreate the directory after clearing (default: True)
+        preserve_dir: If True, only the contents are deleted (default: True)
 
     Raises:
         Exception: If unable to clear the directory
@@ -205,52 +205,23 @@ def clear_directory(dir_path: str | Path, recreate: bool = True) -> None:
     try:
         path = Path(dir_path)
         if path.exists():
+            if preserve_dir:
+                for item in path.iterdir():
+                    if item.is_dir():
+                        shutil.rmtree(item)
+                    else:
+                        item.unlink()
+
+                logging.info("Removed: %s", path)
+                return
+            # when preserve_dir is false
             shutil.rmtree(path)
             logging.info("Removed: %s", path)
-        else:
-            logging.debug("Skipped (doesn't exist): %s", path)
+            return
 
-        if recreate:
-            path.mkdir(parents=True, exist_ok=True)
-            logging.debug("Recreated: %s", path)
+        # when path not found
+        logging.debug("Skipped (doesn't exist): %s", path)
 
     except Exception as e:
         logging.critical("Failed to clear '%s': %s", dir_path, e)
         raise
-
-
-def save_to_cache(
-    content: str | bytes,
-    filename: str,
-    subdir: str | None = None,
-    custom_cache_dir: str | None = None,
-) -> Path:
-    """
-    Save content to a file in the cache directory.
-
-    Args:
-        content: Content to save (string or bytes)
-        filename: Name of the file
-        subdir: Optional subdirectory within cache
-        custom_cache_dir: Optional custom cache directory path
-
-    Returns:
-        Path to the saved file
-    """
-    cache_dir = get_cache_dir(custom_cache_dir)
-
-    if subdir:
-        target_dir = cache_dir / subdir
-        target_dir.mkdir(parents=True, exist_ok=True)
-    else:
-        target_dir = cache_dir
-
-    file_path = target_dir / filename
-
-    if isinstance(content, str):
-        file_path.write_text(content)
-    else:
-        file_path.write_bytes(content)
-
-    logging.debug("Saved to cache: %s", file_path)
-    return file_path

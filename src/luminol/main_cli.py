@@ -120,7 +120,7 @@ def main():
     assign_start_time = time.perf_counter()
 
     # clear cache
-    clear_directory(dir_path=LUMINOL_CACHE_DIR, recreate=True)
+    clear_directory(dir_path=LUMINOL_CACHE_DIR, preserve_dir=True)
     logging.info("Cache Cleared")
 
     # if theme is set in cli then override the theme_type in config
