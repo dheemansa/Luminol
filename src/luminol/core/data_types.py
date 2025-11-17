@@ -1,9 +1,53 @@
+"""
+Examples:
+    Basic RGB usage:
+        >>> rgb = RGB(255, 128, 0)
+        >>> rgb.r
+        255
+        >>> rgb.hex
+        '#FF8000'
+
+    RGBA with alpha channel:
+        >>> rgba = RGBA(255, 128, 0, 0.5)
+        >>> rgba.hex6  # Ignores alpha
+        '#FF8000'
+        >>> rgba.hex8  # Includes alpha
+        '#FF800080'
+
+    ColorData with metrics:
+        >>> color = ColorData(RGB(255, 128, 0), coverage=72.5)
+        >>> color.rgb.hex
+        '#FF8000'
+        >>> color.coverage
+        72.5
+"""
+
 from collections import namedtuple
 from typing import TYPE_CHECKING
 from ..cli.term_colors import AnsiColors as AC
 
-# NOTE: type_checking logic was generated/suggested by AI
 
+def _calculate_luma_value(color) -> float:
+    """Calculates the luminance for an RGB-like object."""
+
+    def to_linear(c) -> float:
+        c = c / 255.0
+        if c <= 0.04045:
+            return c / 12.92
+
+        GAMMA = 2.4  # pylint: disable=invalid-name
+        return ((c + 0.055) / 1.055) ** GAMMA
+
+    r_lin = to_linear(color.r)
+    g_lin = to_linear(color.g)
+    b_lin = to_linear(color.b)
+
+    # Apply coefficients in linear space
+    luma_linear = 0.2126 * r_lin + 0.7152 * g_lin + 0.0722 * b_lin
+    return luma_linear * 255.0
+
+
+# NOTE: type_checking logic was generated/suggested by AI
 
 if TYPE_CHECKING:
     # Type checkers see this clean definition
@@ -21,6 +65,11 @@ if TYPE_CHECKING:
             """6-digit hex representation (#RRGGBB)."""
             ...  # pylint: disable = unnecessary-ellipsis
 
+        @property
+        def luma(self) -> float:
+            """Luminance of the RGB color."""
+            ...  # pylint: disable = unnecessary-ellipsis
+
         def __str__(self) -> str: ...  # pylint: disable = unnecessary-ellipsis
 
 else:
@@ -29,6 +78,8 @@ else:
 
     # Add hex property
     RGB.hex = property(lambda self: f"#{self.r:02X}{self.g:02X}{self.b:02X}")
+    # Add luma property
+    RGB.luma = property(lambda self: _calculate_luma_value(self))
 
     # Add __str__ method with ANSI color background
     RGB.__str__ = lambda self: (
@@ -56,6 +107,11 @@ if TYPE_CHECKING:
             """8-digit hex including alpha (#RRGGBBAA)."""
             ...  # pylint: disable = unnecessary-ellipsis
 
+        @property
+        def luma(self) -> float:
+            """Luminance of the RGBA color."""
+            ...  # pylint: disable = unnecessary-ellipsis
+
 else:
     RGBA = namedtuple("RGBA", ["r", "g", "b", "a"])
 
@@ -68,6 +124,8 @@ else:
         return f"#{self.r:02X}{self.g:02X}{self.b:02X}{a:02X}"
 
     RGBA.hex8 = property(_rgba_hex8)
+    # Add luma property
+    RGBA.luma = property(lambda self: _calculate_luma_value(self))
 
 
 if TYPE_CHECKING:
@@ -77,41 +135,15 @@ if TYPE_CHECKING:
 
         rgb: RGB
         coverage: float
-        luma: float
 
         def __str__(self) -> str: ...  # pylint: disable = unnecessary-ellipsis
 
 else:
-    ColorData = namedtuple("ColorData", ["rgb", "coverage", "luma"])
+    ColorData = namedtuple("ColorData", ["rgb", "coverage"])
 
     # Add __str__ method
     ColorData.__str__ = lambda self: (
         f"{AC.bg_rgb(r=self.rgb.r, g=self.rgb.g, b=self.rgb.b)}"
         f"{self.rgb.hex}{AC.RESET} "
-        f"Luma={self.luma:.3f} Coverage={self.coverage:.3f}"
+        f"Coverage={self.coverage:.3f}"
     )
-
-
-"""
-Examples:
-    Basic RGB usage:
-        >>> rgb = RGB(255, 128, 0)
-        >>> rgb.r
-        255
-        >>> rgb.hex
-        '#FF8000'
-    
-    RGBA with alpha channel:
-        >>> rgba = RGBA(255, 128, 0, 0.5)
-        >>> rgba.hex6  # Ignores alpha
-        '#FF8000'
-        >>> rgba.hex8  # Includes alpha
-        '#FF800080'
-    
-    ColorData with metrics:
-        >>> color = ColorData(RGB(255, 128, 0), coverage=0.45, luma=72.5)
-        >>> color.rgb.hex
-        '#FF8000'
-        >>> color.luma
-        72.5
-"""

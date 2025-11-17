@@ -5,7 +5,7 @@ import time
 from .cli.cli_parser import parse_arguments
 from .cli.term_colors import AnsiColors
 from .color.assign import assign_color
-from .color.extraction import get_colors
+from .color.extraction import extract_colors
 from .config.parser import Config, load_config
 from .core.test_preset import TEST_PRESET
 from .exceptions.exceptions import InvalidConfigError, WallpaperSetError
@@ -52,7 +52,7 @@ def main():
         logging.info("Extracting colors...")
         extract_start_time = time.perf_counter()
 
-        colors = get_colors(
+        colors = extract_colors(
             image_path=str(image_path),
             num_colors=8,
             preset=quality_flag,
@@ -108,7 +108,7 @@ def main():
                 raise SystemExit(1) from e
 
     logging.info("Extracting colors...")
-    color_data = get_colors(
+    color_data = extract_colors(
         image_path=image_path, num_colors=8, preset=quality_flag, sort_by="luma"
     )
     for col in color_data:
@@ -209,4 +209,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
