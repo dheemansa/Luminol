@@ -7,7 +7,7 @@ from .cli.term_colors import AnsiColors
 from .color.assign import assign_color
 from .color.extraction import get_colors
 from .config.parser import Config, load_config
-from .core.constants import TEST_PRESET
+from .core.test_preset import TEST_PRESET
 from .exceptions.exceptions import InvalidConfigError, WallpaperSetError
 from .utils.file_io import write_file
 from .utils.logging_config import configure_logging
