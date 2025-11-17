@@ -6,12 +6,14 @@ build-backend = "setuptools.build_meta"
 name = "luminol"
 version = "0.1.0"
 description = "Color palette generator and theme exporter"
-authors = [{ name = "dheemansa", email = "dheemansa@gmail.com" }]
+authors = [{ name = "dheemansa", email = "dheemansa2007@gmail.com" }]
 license = "GPL-3.0"
 
 dependencies = ["pillow", "numpy"]
-classifiers = ["Operating System :: POSIX :: Linux"]
 
 
 [project.scripts]
 luminol = "luminol.main_cli:main"
+
+[tool.pylint.messages_control]
+disable = ["E0402"]
