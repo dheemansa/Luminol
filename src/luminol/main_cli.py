@@ -11,7 +11,7 @@ from .core.constants import TEST_PRESET
 from .exceptions.exceptions import InvalidConfigError, WallpaperSetError
 from .utils.file_io import write_file
 from .utils.logging_config import configure_logging
-from .utils.palette_generator import compile_color_syntax
+from .utils.palette_generator import compile_color_syntax, compile_template
 from .utils.path import (
     clear_directory,
     clear_old_logs,
@@ -20,8 +20,6 @@ from .utils.path import (
     get_luminol_dir,
 )
 from .utils.system_actions import apply_wallpaper, run_reload_commands
-
-# TODO later use Luminol package to create the cli
 
 LUMINOL_CONFIG_DIR = get_luminol_dir()
 LUMINOL_CACHE_DIR = get_cache_dir()
@@ -109,6 +107,7 @@ def main():
                 logging.error(e)
                 raise SystemExit(1) from e
 
+    logging.info("Extracting colors...")
     color_data = get_colors(
         image_path=image_path, num_colors=8, preset=quality_flag, sort_by="luma"
     )
@@ -119,7 +118,7 @@ def main():
 
     # clear cache
     clear_directory(dir_path=LUMINOL_CACHE_DIR, preserve_dir=True)
-    logging.info("Cache Cleared")
+    logging.info("Old cache cleared")
 
     # if theme is set in cli then override the theme_type in config
     if theme_type_flag is not None:
@@ -130,7 +129,7 @@ def main():
         )
 
     assign_end_time = time.perf_counter()
-    logging.info("Color assign took %s", assign_end_time - assign_start_time)
+    logging.debug("Color assign took %s", assign_end_time - assign_start_time)
 
     # create palette
     enabled_apps: list = config.enabled_apps
@@ -142,14 +141,17 @@ def main():
 
         ## first save in cache: <cache_dir>/<app_name>/<file_name>
         cache_save_dir = LUMINOL_CACHE_DIR / f"{app}" / output_dir.name
-        if not app_settings.template:
-            app_syntax: str = app_settings.syntax
-            app_color_format: str = app_settings.color_format
-            remap: bool = app_settings.remap_colors
-            if remap:
-                app_remap = app_settings.colors
-            else:
-                app_remap = None
+        template_file_path = app_settings.template
+
+        app_syntax: str = app_settings.syntax
+        app_color_format: str = app_settings.color_format
+        remap: bool = app_settings.remap_colors
+        if remap:
+            app_remap = app_settings.colors
+        else:
+            app_remap = None
+
+        if template_file_path is None:
 
             palette_list: list = compile_color_syntax(
                 named_colors=TEST_PRESET,
@@ -158,6 +160,30 @@ def main():
                 remap=app_remap,
             )
             write_file(file_path=cache_save_dir, content=palette_list)
+        else:  # template mode
+            try:
+                with open(template_file_path, "r", encoding="utf-8") as template_file:
+                    template_file_contents = template_file.read()
+            except FileNotFoundError as e:
+                logging.error("Template file: %s not found", template_file_path)
+                raise SystemExit(1) from e
+
+            except Exception as e:
+                logging.exception(
+                    f"Unexpected error occured wile reading the template file: {template_file_path}"
+                )
+                raise SystemExit(1) from e
+
+            palette_file_contents: str = compile_template(
+                named_colors=TEST_PRESET,
+                syntax=app_syntax,
+                template=template_file_contents,
+                remap=app_remap,
+                color_format=app_color_format,
+            )
+
+            write_file(file_path=cache_save_dir, content=palette_file_contents)
+
     palette_end_time = time.perf_counter()
     logging.info("Palette export took %s", palette_end_time - palette_start_time)
 
@@ -183,3 +209,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

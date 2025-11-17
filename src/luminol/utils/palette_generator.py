@@ -149,16 +149,17 @@ def compile_color_syntax(
     """
     content: list = []
     if remap is None:
-        for final_name in named_colors:
+        for final_name, palette_color in named_colors.items():
             final_color: str = _convert_format(
-                color=named_colors[final_name], color_format=color_format
+                color=palette_color, color_format=color_format
             )
             # replace {color} with final_color and {name} with final_name
-            # line: str = syntax.format(color=final_color, name=final_name)
             line: str = syntax.replace("{color}", final_color).replace(
                 "{name}", final_name
             )
             content.append(line)
+        return content
+
     else:
         for final_name, params in remap.items():
             source: str = params["source"]
@@ -178,10 +179,49 @@ def compile_color_syntax(
                 color=transformed_color, color_format=color_format
             )
             # replace {color} with final_color and {name} with final_name
-            # line: str = syntax.format(color=final_color, name=final_name)
             line: str = syntax.replace("{color}", final_color).replace(
                 "{name}", final_name
             )
             content.append(line)
 
     return content
+
+
+def compile_template(
+    named_colors: dict[str, RGB],
+    syntax: str,
+    template: str,
+    color_format: str,
+    remap: dict[str, Any] | None = None,
+) -> str:
+    if remap is None:  # use semantic names as find key
+        for col_name, color in named_colors.items():
+            find_key = syntax.replace("placeholder", col_name)
+
+            final_color = _convert_format(color=color, color_format=color_format)
+            template = template.replace(find_key, final_color)
+
+        return template
+    else:  # use remap names as find key
+        for final_name, params in remap.items():
+            find_key = syntax.replace("placeholder", final_name)
+            source: str = params["source"]
+            source_color: RGB = named_colors[source]
+
+            transformed_color: RGBA = _transform_color(
+                rgb=source_color,
+                hue=params.get("hue", None),
+                saturation=params.get("saturation", None),
+                brightness=params.get("brightness", None),
+                contrast=params.get("contrast", None),
+                temp=params.get("temperature", None),
+                opacity=params.get("opacity", None),
+            )
+
+            final_color: str = _convert_format(
+                color=transformed_color, color_format=color_format
+            )
+
+            template = template.replace(find_key, final_color)
+
+        return template
