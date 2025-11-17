@@ -37,7 +37,7 @@ def _run_detached_command(
         return
 
     command_args_list: list = shlex.split(command)
-    logging.info("Executing command: '%s'", command)
+    logging.debug("Executing command: '%s'", command)
 
     if not log_dir:
         try:
@@ -50,7 +50,7 @@ def _run_detached_command(
                     command, shell=True, start_new_session=True
                 )
 
-            logging.info("Successfully launched '%s' without logging.", command)
+            logging.debug("Successfully launched '%s' without logging.", command)
         except OSError as e:
             logging.error("Failed to launch '%s': %s", command, e)
         return
@@ -89,7 +89,9 @@ def _run_detached_command(
                     start_new_session=True,
                 )
 
-        logging.info("Successfully launched '%s' with logging to %s", command, log_path)
+        logging.debug(
+            "Successfully launched '%s' with logging to %s", command, log_path
+        )
 
     except OSError as e:
         logging.error("Failed to launch '%s': %s", command, e)
@@ -98,6 +100,24 @@ def _run_detached_command(
         logging.error(
             "An unexpected error occurred while trying to run '%s': %s", command, e
         )
+
+
+def _truncate_string(text: str) -> str:
+    """
+    Truncates a string by keeping the first 30 and last 20 characters,
+    inserting an ellipsis in the middle if the string is long enough.
+    """
+    start_len = 30
+    end_len = 20
+    ellipsis = "....."
+
+    if len(text) <= start_len + end_len + len(ellipsis):
+        return text
+
+    start_str = text[:start_len]
+    end_str = text[-end_len:]
+
+    return f"{start_str} {ellipsis} {end_str}"
 
 
 def apply_wallpaper(
@@ -127,9 +147,13 @@ def apply_wallpaper(
 
     try:
         _run_detached_command(command=final_command, log_dir=log_dir, use_shell=False)
+        truncated_command = _truncate_string(final_command)
+        logging.info("Wallpaper command executed: %s", truncated_command)
 
     except Exception as e:
-        raise WallpaperSetError("Failed to launch wallpaper command") from e
+        raise WallpaperSetError(
+            f"Failed to launch wallpaper command: {final_command}"
+        ) from e
 
 
 def run_reload_commands(

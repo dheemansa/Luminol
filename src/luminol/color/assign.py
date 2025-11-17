@@ -82,13 +82,13 @@ def assign_color(color_data: list[ColorData], theme_type: str = "auto"):
     else:
         theme = theme_type
 
-    print(f"Theme Type: {theme}")
+    logging.debug("Theme Type: %s", theme)
 
     if theme == "dark":
         bg = _darken(darkest, 0.5)
         bg_luma = luma(*bg)
         bg_coverage = color_data[-1].coverage
-        print(f"Background color: {bg}")
+        logging.debug("Background color: %s", bg)
 
         COVERAGE_THRESHOLD = 0.2
         MIN_CONTRAST = 6
@@ -109,7 +109,7 @@ def assign_color(color_data: list[ColorData], theme_type: str = "auto"):
 
         pre_contrast = contrast_ratio(fg_selected_color.luma, bg_luma)
 
-        print(f"pre Contrast Ratio: {pre_contrast:.2f}")
+        logging.debug("pre Contrast Ratio: %.2f", pre_contrast)
 
         if pre_contrast >= MIN_CONTRAST:
             fg = fg_selected_color.rgb
@@ -129,24 +129,26 @@ def assign_color(color_data: list[ColorData], theme_type: str = "auto"):
             )
 
         if not _is_near_white(fg, 60):
-            print(f"before white {fg}")
-            logging.warning("not white using blend")
+            logging.debug("Before White correction fg: %s", fg)
             fg = blend(
                 color=fg,
                 blend_with=NEUTRAL_WHITE,
                 amount=0.3,  # small value because fg has alrady passed the contrast
             )
 
-        print(f"Text color: {fg}")
+        logging.debug("Text color: %s", fg)
 
     else:  # for light theme
         bg = lightest
-        print(f"Background color: {bg}")
+        logging.debug("Background color: %s", bg)
 
         fg = darkest
-        print(f"Text color: {fg}")
+        logging.debug("Text color: %s", fg)
 
-    post_contrast = contrast_ratio(luma(bg.r, bg.g, bg.b), luma(fg.r, fg.g, fg.b))
-    print(f"Post Contrast Ratio: {post_contrast:.2f}")
+    logging.debug(
+        "Post Contrast Ratio: %.2f",
+        contrast_ratio(luma(bg.r, bg.g, bg.b), luma(fg.r, fg.g, fg.b)),
+    )
 
     apply_terminal_colors(bg=bg, fg=fg)
+
