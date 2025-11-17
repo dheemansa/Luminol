@@ -182,7 +182,7 @@ are different types of placeholders depending on which mode you're using:
 
 - `{name}` - Replaced with the color's variable name
 - `{color}` - Replaced with the actual color value in your specified format
-- `{placeholder}` - A special keyword used ONLY in Template Mode (explained below)
+- `placeholder` - A special keyword used ONLY in Template Mode (explained below)
 
 ### How Syntax Works: Detailed Examples
 
