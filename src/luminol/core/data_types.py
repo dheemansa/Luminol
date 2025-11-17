@@ -19,9 +19,9 @@ if TYPE_CHECKING:
         @property
         def hex(self) -> str:
             """6-digit hex representation (#RRGGBB)."""
-            ...
+            ...  # pylint: disable = unnecessary-ellipsis
 
-        def __str__(self) -> str: ...
+        def __str__(self) -> str: ...  # pylint: disable = unnecessary-ellipsis
 
 else:
     # Runtime uses fast immutable namedtuple
@@ -49,17 +49,12 @@ if TYPE_CHECKING:
         @property
         def hex6(self) -> str:
             """6-digit hex ignoring alpha (#RRGGBB)."""
-            ...
+            ...  # pylint: disable = unnecessary-ellipsis
 
         @property
         def hex8(self) -> str:
             """8-digit hex including alpha (#RRGGBBAA)."""
-            ...
-
-        @property
-        def hex(self) -> str:
-            """Alias to hex6 to preserve existing .hex usage."""
-            ...
+            ...  # pylint: disable = unnecessary-ellipsis
 
 else:
     RGBA = namedtuple("RGBA", ["r", "g", "b", "a"])
@@ -74,9 +69,6 @@ else:
 
     RGBA.hex8 = property(_rgba_hex8)
 
-    # Add hex alias
-    RGBA.hex = property(lambda self: self.hex6)
-
 
 if TYPE_CHECKING:
 
@@ -87,7 +79,7 @@ if TYPE_CHECKING:
         coverage: float
         luma: float
 
-        def __str__(self) -> str: ...
+        def __str__(self) -> str: ...  # pylint: disable = unnecessary-ellipsis
 
 else:
     ColorData = namedtuple("ColorData", ["rgb", "coverage", "luma"])
