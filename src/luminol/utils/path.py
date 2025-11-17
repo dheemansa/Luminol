@@ -169,7 +169,7 @@ def clear_old_logs(days: int = 7) -> None:
         logging.debug("Log directory base does not exist, skipping cleanup.")
         return
 
-    logging.info("Checking for logs older than %s days in %s", days, base_log_path)
+    logging.debug("Checking for logs older than %s days in %s", days, base_log_path)
     now = datetime.now()
     cutoff = timedelta(days=days)
 
@@ -212,11 +212,11 @@ def clear_directory(dir_path: str | Path, preserve_dir: bool = True) -> None:
                     else:
                         item.unlink()
 
-                logging.info("Removed: %s", path)
+                logging.debug("Removed: %s", path)
                 return
             # when preserve_dir is false
             shutil.rmtree(path)
-            logging.info("Removed: %s", path)
+            logging.debug("Removed: %s", path)
             return
 
         # when path not found
@@ -225,3 +225,7 @@ def clear_directory(dir_path: str | Path, preserve_dir: bool = True) -> None:
     except Exception as e:
         logging.critical("Failed to clear '%s': %s", dir_path, e)
         raise
+
+
+def _is_file_name(path: str):
+    return Path(path).parent == Path(".")

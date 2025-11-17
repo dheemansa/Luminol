@@ -35,7 +35,7 @@ def extract_colors_kmeans(
     # for example --validate, no extraction is needed
 
     end = time.perf_counter()
-    print(f"Numpy and Pillow took {end - start} to import")
+    logging.debug("Numpy and Pillow took %s to import", end - start)
 
     try:
         # Set seed at the very beginning for consistency
@@ -44,7 +44,7 @@ def extract_colors_kmeans(
         with Image.open(image_path) as img:
             # Convert to RGB
 
-            print(img.mode)
+            logging.debug("Image mode: %s", img.mode)
             img.draft("RGB", resize_dim)
 
             if img.mode not in ("RGB", "RGBA"):
@@ -84,9 +84,7 @@ def extract_colors_kmeans(
 
             # Sample pixels for speed based on quality setting
             if len(pixels) > pixel_sample_count:
-                indices = np.random.choice(
-                    len(pixels), pixel_sample_count, replace=False
-                )
+                indices = np.random.choice(len(pixels), pixel_sample_count, replace=False)
                 sampled_pixels = pixels[indices]
             else:
                 sampled_pixels = pixels
@@ -98,9 +96,7 @@ def extract_colors_kmeans(
             for i in range(1, num_colors):
                 # Use squared distances (no sqrt needed)
                 distances_sq = np.min(
-                    ((sampled_pixels[:, np.newaxis, :] - centroids[:i]) ** 2).sum(
-                        axis=2
-                    ),
+                    ((sampled_pixels[:, np.newaxis, :] - centroids[:i]) ** 2).sum(axis=2),
                     axis=1,
                 )
 
@@ -111,16 +107,12 @@ def extract_colors_kmeans(
                 else:
                     probabilities = np.ones(len(sampled_pixels)) / len(sampled_pixels)
 
-                centroids[i] = sampled_pixels[
-                    np.random.choice(len(sampled_pixels), p=probabilities)
-                ]
+                centroids[i] = sampled_pixels[np.random.choice(len(sampled_pixels), p=probabilities)]
 
             # K-means iterations based on quality setting
             for _ in range(kmeans_iteration):
                 # Use squared distances (faster, same result for argmin)
-                distances_sq = (
-                    (sampled_pixels[:, np.newaxis, :] - centroids) ** 2
-                ).sum(axis=2)
+                distances_sq = ((sampled_pixels[:, np.newaxis, :] - centroids) ** 2).sum(axis=2)
                 assignments = np.argmin(distances_sq, axis=1)
 
                 # Update centroids
@@ -146,9 +138,7 @@ def extract_colors_kmeans(
                 centroids = new_centroids
 
             # Final assignment to get accurate coverage
-            distances_sq = ((sampled_pixels[:, np.newaxis, :] - centroids) ** 2).sum(
-                axis=2
-            )
+            distances_sq = ((sampled_pixels[:, np.newaxis, :] - centroids) ** 2).sum(axis=2)
             assignments = np.argmin(distances_sq, axis=1)
 
             # Calculate coverage for each color
@@ -191,14 +181,10 @@ def get_colors(
     SUPPORTED_SORT = ["luma", "coverage"]  # pylint: disable=invalid-name
 
     if preset not in SUPPORTED_PRESET:
-        raise ValueError(
-            f"{preset} is not a valid Preset. Select something from {', '.join(SUPPORTED_PRESET)}"
-        )
+        raise ValueError(f"{preset} is not a valid Preset. Select something from {', '.join(SUPPORTED_PRESET)}")
 
     if sort_by not in SUPPORTED_SORT:
-        raise ValueError(
-            f"{sort_by} is not a valid sort option. Select something from {', '.join(SUPPORTED_SORT)}"
-        )
+        raise ValueError(f"{sort_by} is not a valid sort option. Select something from {', '.join(SUPPORTED_SORT)}")
 
     resize_dim: tuple[int, int]
     pixel_sample_count: int

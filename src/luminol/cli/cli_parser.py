@@ -16,7 +16,7 @@ def image_path(path: str) -> Path:
 
     if absolute_path.suffix.lower() not in VALID_IMAGE_EXTENSIONS:
         raise argparse.ArgumentTypeError(
-            f"Unsupported image type: {absolute_path.suffix}\n"
+            f"\nUnsupported image type: {absolute_path.suffix}\n"
             f"(Supported types: {', '.join(VALID_IMAGE_EXTENSIONS)})"
         )
 

@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
 import logging
-import os
 from pathlib import Path
 import tomllib
 from typing import Any
 
 from ..exceptions.exceptions import InvalidConfigError
-from ..utils.path import _expand_path, get_luminol_dir
+from ..utils.path import _expand_path, get_luminol_dir, _is_file_name
 from .validate import validate_application_config, validate_global_config
 
 
@@ -73,25 +72,19 @@ class AppSettings:
     def from_dict(cls, data: dict) -> "AppSettings":
         """Create AppSettings instance from dictionary."""
 
-        def _is_file_name(path: str):
-            if os.sep in path or "/" in path:
-                return False
-
-            return True
-
         _output_file = data.get("output-file", "")
 
         if not _is_file_name(_output_file):
             expanded_output_file = _expand_path(_output_file)
         else:
-            expanded_output_file = _output_file
+            expanded_output_file = _output_file  # palette will be only stored in cache
 
         _template = data.get("template", None)
         if _template is not None:
             if _is_file_name(_template):
                 expanded_template_path = get_luminol_dir() / "templates" / _template
             else:
-                expanded_template_path = _template
+                expanded_template_path = _expand_path(_template)
         else:
             expanded_template_path = None
 
@@ -173,6 +166,7 @@ class Config:
         app_data: dict[str, dict] = {
             name: data for name, data in config_data.items() if name != "global"
         }
+
         is_application_valid = validate_application_config(app_data)
 
         if not (is_global_valid and is_application_valid):
