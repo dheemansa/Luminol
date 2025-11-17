@@ -56,11 +56,83 @@ def decide_theme(color_data: list[ColorData]) -> str:
     THEME_THRESHOLD = 120
 
     # Weighted luma calculation
-    weighted_luma = sum(col.luma * col.coverage for col in color_data)
+    weighted_luma = sum(col.rgb.luma * col.coverage for col in color_data)
 
     print(f"Weighted luma: {weighted_luma:.2f}")
 
     return "light" if weighted_luma > THEME_THRESHOLD else "dark"
+
+
+def _assign_bg(color_data: list[ColorData], theme: str) -> RGB:
+    if theme == "dark":
+        bg_primary = _darken(
+            color_data[-1].rgb, 0.5
+        )  # make the darkest color slighly darker
+    else:
+        # TODO: improve this
+        bg_primary = color_data[0].rgb  # lightest color is the bg
+    return bg_primary  # TODO: return primay, secondary, tertiary
+
+
+def _assign_fg(
+    color_data: list[ColorData],
+    bg_primary: RGB,
+    bg_secondary: RGB,
+    bg_tertiary: RGB,
+    theme: str,
+) -> RGB:
+    FG_PRIMARY_COVERAGE_THRESHOLD = 0.2
+    MIN_CONTRAST = 6
+    NEUTRAL_WHITE = RGB(238, 238, 238)
+
+    fg_primary_candidate_color = None
+    mid_index = len(color_data) // 2
+
+    if theme == "dark":
+        bg_primary_coverage: float = color_data[-1].coverage
+    else:
+        bg_primary_coverage = color_data[0].coverage
+
+    for col in color_data[:mid_index]:
+        relative_coverage = col.coverage / bg_primary_coverage
+        if relative_coverage > FG_PRIMARY_COVERAGE_THRESHOLD:
+            fg_primary_candidate_color = col
+            break
+
+    # If no prominent color found, use the brightest
+    if fg_primary_candidate_color is None:
+        fg_primary_candidate_color = color_data[0]  # brightest
+
+    pre_contrast = contrast_ratio(fg_primary_candidate_color.rgb.luma, bg_primary.luma)
+
+    logging.debug("pre Contrast Ratio: %.2f", pre_contrast)
+
+    if pre_contrast >= MIN_CONTRAST:
+        fg_primary = fg_primary_candidate_color.rgb
+
+    else:
+        blend_ratio = _find_optimal_blend_for_contrast(
+            target_contrast=MIN_CONTRAST,
+            darker_rgb=bg_primary,
+            lighter_rgb=fg_primary_candidate_color.rgb,
+            brighten_toward=NEUTRAL_WHITE,
+        )
+
+        fg_primary = blend(
+            color=fg_primary_candidate_color.rgb,
+            blend_with=NEUTRAL_WHITE,
+            amount=blend_ratio,
+        )
+
+    if not _is_near_white(fg_primary, 60):
+        logging.debug("Before White correction fg: %s", fg_primary)
+        fg_primary = blend(
+            color=fg_primary,
+            blend_with=NEUTRAL_WHITE,
+            amount=0.3,  # small value because fg has alrady passed the contrast
+        )
+
+    return fg_primary  # TODO: return primay, secondary, tertiary
 
 
 def assign_color(color_data: list[ColorData], theme_type: str = "auto"):
@@ -85,70 +157,30 @@ def assign_color(color_data: list[ColorData], theme_type: str = "auto"):
     logging.debug("Theme Type: %s", theme)
 
     if theme == "dark":
-        bg = _darken(darkest, 0.5)
-        bg_luma = luma(*bg)
-        bg_coverage = color_data[-1].coverage
-        logging.debug("Background color: %s", bg)
+        bg_primary = _assign_bg(color_data, "dark")
+        logging.debug("Background color: %s", bg_primary)
 
-        COVERAGE_THRESHOLD = 0.2
-        MIN_CONTRAST = 6
-        NEUTRAL_WHITE = RGB(238, 238, 238)
+        bg_secondary = RGB(0, 0, 0)
+        bg_tertiary = RGB(0, 0, 0)
+        fg_primary = _assign_fg(
+            color_data, bg_primary, bg_secondary, bg_tertiary, theme="dark"
+        )
 
-        fg_selected_color = None
-        mid_index = len(color_data) // 2
-
-        for col in color_data[:mid_index]:
-            relative_coverage = col.coverage / bg_coverage
-            if relative_coverage > COVERAGE_THRESHOLD:
-                fg_selected_color = col
-                break
-
-        # If no prominent color found, use the brightest
-        if fg_selected_color is None:
-            fg_selected_color = color_data[0]
-
-        pre_contrast = contrast_ratio(fg_selected_color.luma, bg_luma)
-
-        logging.debug("pre Contrast Ratio: %.2f", pre_contrast)
-
-        if pre_contrast >= MIN_CONTRAST:
-            fg = fg_selected_color.rgb
-
-        else:
-            blend_ratio = _find_optimal_blend_for_contrast(
-                target_contrast=MIN_CONTRAST,
-                darker_rgb=bg,
-                lighter_rgb=fg_selected_color.rgb,
-                brighten_toward=NEUTRAL_WHITE,
-            )
-
-            fg = blend(
-                color=fg_selected_color.rgb,
-                blend_with=NEUTRAL_WHITE,
-                amount=blend_ratio,
-            )
-
-        if not _is_near_white(fg, 60):
-            logging.debug("Before White correction fg: %s", fg)
-            fg = blend(
-                color=fg,
-                blend_with=NEUTRAL_WHITE,
-                amount=0.3,  # small value because fg has alrady passed the contrast
-            )
-
-        logging.debug("Text color: %s", fg)
+        logging.debug("Text color: %s", fg_primary)
 
     else:  # for light theme
-        bg = lightest
-        logging.debug("Background color: %s", bg)
+        bg_primary = lightest
+        logging.debug("Background color: %s", bg_primary)
 
-        fg = darkest
-        logging.debug("Text color: %s", fg)
+        fg_primary = darkest
+        logging.debug("Text color: %s", fg_primary)
 
     logging.debug(
         "Post Contrast Ratio: %.2f",
-        contrast_ratio(luma(bg.r, bg.g, bg.b), luma(fg.r, fg.g, fg.b)),
+        contrast_ratio(
+            luma(bg_primary.r, bg_primary.g, bg_primary.b),
+            luma(fg_primary.r, fg_primary.g, fg_primary.b),
+        ),
     )
 
-    apply_terminal_colors(bg=bg, fg=fg)
-
+    apply_terminal_colors(bg=bg_primary, fg=fg_primary)
