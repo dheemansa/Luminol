@@ -171,8 +171,7 @@ class Config:
 
         if not (is_global_valid and is_application_valid):
             raise InvalidConfigError(
-                "Luminol configuration is invalid. \
-                Please review your settings."
+                "Luminol configuration is invalid. Please review your settings."
             )
 
         self.global_settings = GlobalSettings.from_dict(global_data)
