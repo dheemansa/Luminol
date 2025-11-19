@@ -66,7 +66,7 @@ def decide_theme(color_data: list[ColorData]) -> str:
 def _assign_bg(color_data: list[ColorData], theme: str) -> RGB:
     if theme == "dark":
         bg_primary = _darken(
-            color_data[-1].rgb, 0.5
+            color_data[-1].rgb, 0.3
         )  # make the darkest color slighly darker
     else:
         # TODO: improve this
