@@ -61,7 +61,7 @@ def main():
         )
 
         for color in colors:
-            print(color.rgb)
+            print(color.rgb, end=" ")
 
         extract_end_time = time.perf_counter()
         duration = extract_end_time - extract_start_time
