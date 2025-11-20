@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import shutil
 import time
 
 from .cli.cli_parser import parse_arguments
@@ -90,7 +91,7 @@ def main():
     else:
         log_dir = None
 
-    if dry_run_flag is False:
+    if not dry_run_flag:
         # if wallpaper-command is not set then skip execution of wallpaper command
         if config.global_settings.wallpaper_command:
             try:
@@ -144,6 +145,7 @@ def main():
         output_dir: Path = Path(app_settings.output_file)
 
         ## first save in cache: <cache_dir>/<app_name>/<file_name>
+        ## for safety if the tool crashes or terminates
         cache_save_dir = LUMINOL_CACHE_DIR / f"{app}" / output_dir.name
         template_file_path = app_settings.template
 
@@ -187,27 +189,53 @@ def main():
 
             write_file(file_path=cache_save_dir, content=palette_file_contents)
 
+    if dry_run_flag is True:
+        # when dry_run is enabled terminate
+        # just after palette_files are saved to cache
+        palette_end_time = time.perf_counter()
+        logging.info("Palette creation took %s", palette_end_time - palette_start_time)
+        raise SystemExit(0)
+
+    ## final export to output_dir
+    for app in enabled_apps:
+        app_settings = config.get_app(app)
+
+        destination: Path = Path(app_settings.output_file)
+        file_name = destination.name
+        source: Path = LUMINOL_CACHE_DIR / f"{app}" / file_name
+
+        try:
+            shutil.copy(src=source, dst=destination)
+
+        except FileNotFoundError:
+            logging.exception(
+                f"Destination not found: '{destination}'. Cannot export '{app}'."
+            )
+
+        except Exception as e:
+            logging.exception(f"Failed to copy '{source}' to '{destination}': {e}")
+
     palette_end_time = time.perf_counter()
-    logging.info("Palette export took %s", palette_end_time - palette_start_time)
+    logging.info(
+        "Palette creation and export took %s", palette_end_time - palette_start_time
+    )
 
     # TODO: also make a tty reload similar to pywall
 
-    if dry_run_flag is False:
-        # NOTE: this will be the last step
-        # if reload-command is not set then skip execution of reload command
-        if config.global_settings.reload_commands:
-            try:
-                run_reload_commands(
-                    reload_commands=config.global_settings.reload_commands,
-                    use_shell=config.global_settings.use_shell,
-                    log_dir=log_dir,
-                )
+    if config.global_settings.reload_commands:
+        try:
+            run_reload_commands(
+                reload_commands=config.global_settings.reload_commands,
+                use_shell=config.global_settings.use_shell,
+                log_dir=log_dir,
+            )
 
-            except Exception as e:
-                logging.exception(e)
-                raise SystemExit(1) from e
+        except Exception as e:
+            logging.exception(e)
+            raise SystemExit(1) from e
 
-    clear_old_logs()
+    if log_dir:
+        clear_old_logs()
 
 
 if __name__ == "__main__":
