@@ -110,6 +110,36 @@ def get_cache_dir(custom_cache_dir: str | None = None) -> Path:
     return cache_path
 
 
+def get_base_log_dir(custom_log_dir: str | None = None) -> Path:
+    """
+    Return the path to the base log directory, creating it if needed.
+
+    Priority order for the base directory:
+    1. Custom log directory (if provided)
+    2. $XDG_STATE_HOME/luminol
+    3. ~/.local/state/luminol
+
+    Args:
+        custom_log_dir: Optional custom base log directory path
+
+    Returns:
+        Path to the base log directory.
+    """
+    if custom_log_dir is not None:
+        base_log_path = _expand_path(custom_log_dir)
+
+    else:
+        # Check XDG_STATE_HOME
+        xdg_state_home = os.getenv("XDG_STATE_HOME")
+        if xdg_state_home:
+            base_log_path = _expand_path(xdg_state_home) / "luminol" / "logs"
+        else:
+            # Fallback to ~/.local/state/luminol
+            base_log_path = Path.home() / ".local" / "state" / "luminol" / "logs"
+
+    return base_log_path
+
+
 def get_log_dir(custom_log_dir: str | None = None) -> Path:
     """
     Return the path to the log directory for the current run, creating it if needed.
@@ -131,13 +161,7 @@ def get_log_dir(custom_log_dir: str | None = None) -> Path:
     if custom_log_dir is not None:
         base_log_path = _expand_path(custom_log_dir)
     else:
-        # Check XDG_STATE_HOME
-        xdg_state_home = os.getenv("XDG_STATE_HOME")
-        if xdg_state_home:
-            base_log_path = _expand_path(xdg_state_home) / "luminol"
-        else:
-            # Fallback to ~/.local/state/luminol
-            base_log_path = Path.home() / ".local" / "state" / "luminol"
+        base_log_path = get_base_log_dir()
 
     # A new timestamped directory is created for each run. This is to isolate
     # log outputs and prevent detached, long-running processes from a previous
@@ -157,13 +181,7 @@ def clear_old_logs(days: int = 7) -> None:
     Args:
         days (int): The maximum age of logs in days to keep.
     """
-    # Determine the base log directory path (without the timestamp)
-    # This logic is duplicated from get_log_dir to find the base path
-    xdg_state_home = os.getenv("XDG_STATE_HOME")
-    if xdg_state_home:
-        base_log_path = _expand_path(xdg_state_home) / "luminol" / "logs"
-    else:
-        base_log_path = Path.home() / ".local" / "state" / "luminol" / "logs"
+    base_log_path = get_base_log_dir()
 
     if not base_log_path.is_dir():
         logging.debug("Log directory base does not exist, skipping cleanup.")
@@ -202,28 +220,34 @@ def clear_directory(dir_path: str | Path, preserve_dir: bool = True) -> None:
     Raises:
         Exception: If unable to clear the directory
     """
-    try:
-        path = Path(dir_path)
-        if path.exists():
-            if preserve_dir:
-                for item in path.iterdir():
-                    if item.is_dir():
-                        shutil.rmtree(item)
-                    else:
-                        item.unlink()
 
-                logging.debug("Removed: %s", path)
-                return
-            # when preserve_dir is false
-            shutil.rmtree(path)
-            logging.debug("Removed: %s", path)
+    path = Path(dir_path)
+    try:
+        if not path.exists():
+            # when path not found
+            logging.debug("Skipped (doesn't exist): %s", path)
             return
 
-        # when path not found
-        logging.debug("Skipped (doesn't exist): %s", path)
+        if preserve_dir:
+            for item in path.iterdir():
+                if item.is_dir():
+                    shutil.rmtree(item)
+                else:
+                    item.unlink()
 
+            logging.debug("Cleared contents of: %s", path)
+            return
+
+        # when preserve_dir is false
+        shutil.rmtree(path)
+        logging.debug("Removed: %s", path)
+        return
+
+    except PermissionError as e:
+        logging.error("Permission denied while clearing '%s': %s", path, e)
+        raise
     except Exception as e:
-        logging.critical("Failed to clear '%s': %s", dir_path, e)
+        logging.error("Failed to clear '%s': %s", path, e)
         raise
 
 
