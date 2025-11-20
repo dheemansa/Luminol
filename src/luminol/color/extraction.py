@@ -8,7 +8,7 @@ from ..core.data_types import ColorData, RGB
 def extract_colors_kmeans(
     image_path: str | Path,
     num_colors: int = 8,
-    resize_dim: tuple | None = None,
+    resize_dim: tuple[int, int] | None = None,
     pixel_sample_count: int | None = None,
     kmeans_iteration: int = 10,
 ) -> list[ColorData]:
@@ -51,19 +51,17 @@ def extract_colors_kmeans(
                 end = time.perf_counter()
 
                 logging.debug("Image Convert to Rgb Colorspace time: %s", end - start)
-            start = time.perf_counter()
+
             if resize_dim:
+                resize_start = time.perf_counter()
                 if not (img.width <= resize_dim[0] and img.height <= resize_dim[1]):
-                    # img.thumbnail(resize_dim, Image.Resampling.NEAREST)
-                    img.thumbnail(resize_dim, Image.Resampling.LANCZOS)
+                    img.thumbnail(
+                        resize_dim,
+                        Image.Resampling.NEAREST,
+                    )
 
-            end = time.perf_counter()
-            logging.warning("Resize time: %s", end - start)
-
-            # NOTE: instead of resizing the image we could convert the whole
-            # image into an array and then use stride sampling to
-            # reduce the number of pixels this might be faster
-            # than resize, but will definitely use up more memory
+                resize_end = time.perf_counter()
+                logging.warning("Resize time: %s", resize_end - resize_start)
 
             start = time.perf_counter()
             # Convert to numpy array
