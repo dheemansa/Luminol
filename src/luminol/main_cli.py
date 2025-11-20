@@ -108,11 +108,15 @@ def main():
                 raise SystemExit(1) from e
 
     logging.info("Extracting colors...")
+    extract_start = time.perf_counter()
     color_data = extract_colors(
         image_path=image_path, num_colors=8, preset=quality_flag, sort_by="luma"
     )
     for col in color_data:
         print(col)
+
+    extract_end = time.perf_counter()
+    logging.debug("Extraction took: %s", extract_end - extract_start)
 
     assign_start_time = time.perf_counter()
 
@@ -152,7 +156,6 @@ def main():
             app_remap = None
 
         if template_file_path is None:
-
             palette_list: list = compile_color_syntax(
                 named_colors=TEST_PRESET,
                 syntax=app_syntax,
