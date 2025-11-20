@@ -5,18 +5,13 @@ import shutil
 from datetime import datetime, timedelta
 
 
-def _expand_path(path_str: str | Path) -> Path:
-    """Expand ~, ~user, and environment variables."""
-    expanded = os.path.expanduser(str(path_str))
-    expanded = os.path.expandvars(expanded)
-    return Path(expanded)
+def _expand_path(path: str | Path) -> Path:
+    path = str(path)
+    return Path(os.path.expandvars(os.path.expanduser(path)))
 
 
 def _validate_path(path: Path, path_type: str = "directory") -> Path:
     """Validate that a path exists and is of the correct type."""
-    if not path.exists():
-        raise FileNotFoundError(f"No such {path_type} exists: {path}")
-
     if path_type == "directory" and not path.is_dir():
         raise NotADirectoryError(f"Path is not a directory: {path}")
 
@@ -168,7 +163,7 @@ def get_log_dir(custom_log_dir: str | None = None) -> Path:
     # run from writing to the same log files as processes from the current run.
     # The YYYY-MM-DD_HH-MM-SS format also ensures chronological sorting.
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    log_path = base_log_path / "logs" / timestamp
+    log_path = base_log_path / timestamp
     log_path.mkdir(parents=True, exist_ok=True)
     logging.debug("Using log directory: %s", log_path)
     return log_path
@@ -194,6 +189,9 @@ def clear_old_logs(days: int = 7) -> None:
     for log_dir in base_log_path.iterdir():
         if not log_dir.is_dir():
             continue
+
+        if len(log_dir.name) != 19:
+            continue  # definitely not a timestamp
 
         try:
             log_time = datetime.strptime(log_dir.name, "%Y-%m-%d_%H-%M-%S")
@@ -252,4 +250,5 @@ def clear_directory(dir_path: str | Path, preserve_dir: bool = True) -> None:
 
 
 def _is_file_name(path: str):
-    return Path(path).parent == Path(".")
+    """Check if path is just a filename without directory components."""
+    return "/" not in path
