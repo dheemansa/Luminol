@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from ..core.constants import VALID_IMAGE_EXTENSIONS
+VALID_IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp")
 
 
 ##TODO validate image using imghdr for corrupt files

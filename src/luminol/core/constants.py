@@ -54,6 +54,3 @@ SUPPORTED_COLOR_TRANFORMATION = (
     "temperature",
     "brightness",
 )
-
-
-VALID_IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp")
