@@ -174,7 +174,7 @@ def extract_colors_kmeans(
 
 
 def extract_colors(
-    image_path: str,
+    image_path: str | Path,
     num_colors: int = 8,
     preset: str = "balanced",
     sort_by: str = "luma",
