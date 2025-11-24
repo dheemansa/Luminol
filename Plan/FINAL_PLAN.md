@@ -143,7 +143,7 @@ Each application has its own section (e.g., `[rofi]`, `[dunst]`).
 
 **Key Parameters:**
 
-- `enabled`: (Required) `true` or `false`.
+- `enabled`: (Optional) `true` or `false`. Defaults to `true`.
 - `output-file`: (Required) Path to the output file.
     - If this is a full path (e.g., `~/.config/rofi/colors.rasi`), the file is written there.
     - If this is just a filename (e.g., `rofi.css`), the palette is stored in the cache at
@@ -440,7 +440,7 @@ This is the **simplest mode** and the fallback when neither `template` is set no
 
 ```toml
 [app_name]
-enabled = true                          # Required
+# enabled = true                          # Optional: Defaults to true if not set.
 output-file = "/path/to/output"         # Required
 color-format = "hex6"                   # Required: hex6, hex8, rgb, rgba, rgb_decimal,rgba_decimal
 syntax = "*{{name}: {color};}"          # Required: pattern with {name} and/or {color}
@@ -460,7 +460,6 @@ In Default Mode, the `syntax` can contain:
 
 ```toml
 [rofi]
-enabled = true
 output-file = "~/.config/rofi/colors.rasi"
 color-format = "hex8"
 syntax = "*{{name}: {color};}"
@@ -489,7 +488,6 @@ syntax = "*{{name}: {color};}"
 
 ```toml
 [gtk]
-enabled = true
 output-file = "~/.config/gtk-3.0/colors.css"
 color-format = "rgb"
 syntax = "--{name}: {color};"
@@ -517,7 +515,6 @@ syntax = "--{name}: {color};"
 
 ```toml
 [shell]
-enabled = true
 output-file = "~/.config/shell/colors.sh"
 color-format = "hex6"
 syntax = "export {name}=\"{color}\""
@@ -545,7 +542,6 @@ export border-inactive="#404040"
 
 ```toml
 [gtk-scheme]
-enabled = true
 output-file = "~/.themes/MyTheme/gtk.css"
 color-format = "hex6"
 syntax = "@define-color {name} {color};"
@@ -573,7 +569,6 @@ syntax = "@define-color {name} {color};"
 
 ```toml
 [scss]
-enabled = true
 output-file = "~/.config/styles/_colors.scss"
 color-format = "rgba"
 syntax = "${name}: {color};"
@@ -648,7 +643,7 @@ configuration error.
 
 ```toml
 [app_name]
-enabled = true
+# enabled = true                          # Optional: Defaults to true if not set.
 output-file = "/path/to/output"
 color-format = "rgba"                    # Any valid format
 syntax = "${name} = {color}"             # Pattern with {name} and/or {color}
@@ -684,7 +679,6 @@ your-custom-name = { source = "semantic-color-name", transformation1 = value, tr
 
 ```toml
 [hyprland]
-enabled = true
 output-file = "~/.config/hypr/colors.conf"
 color-format = "rgba"
 syntax = "${name} = {color}"
@@ -716,7 +710,6 @@ $terminal-blue = rgba(80, 120, 255, 1.0)
 
 ```toml
 [waybar]
-enabled = true
 output-file = "waybar-colors.css"  # Relative path - goes to cache
 color-format = "hex8"
 syntax = "@define-color {name} {color};"
@@ -753,7 +746,6 @@ warning-alert = { source = "warning-color" }
 
 ```toml
 [kitty]
-enabled = true
 output-file = "~/.config/kitty/colors.conf"
 color-format = "hex6"
 syntax = "{name} {color}"
@@ -819,7 +811,6 @@ You can export just a few colors if that's all you need:
 
 ```toml
 [simple-app]
-enabled = true
 output-file = "colors.conf"
 color-format = "rgb"
 syntax = "set {name} \"{color}\""
@@ -844,7 +835,6 @@ set fg "rgb(224, 224, 224)"
 
 ```toml
 [color-list]
-enabled = true
 output-file = "palette.txt"
 color-format = "hex6"
 syntax = "Color: {color}"
@@ -868,7 +858,6 @@ Color: #1e1e2e
 
 ```toml
 [color-names]
-enabled = true
 output-file = "names.txt"
 color-format = "hex6"
 syntax = "Available: {name}"
@@ -1054,7 +1043,7 @@ Template Mode works in two distinct ways depending on whether you're using custo
 
 ```toml
 [app_name]
-enabled = true
+# enabled = true                        # Optional: Defaults to true if not set.
 output-file = "/path/to/output"
 color-format = "hex6"
 template = "my-app.conf"    # Activates Template Mode
@@ -1086,7 +1075,6 @@ You can use these **29 semantic names** in your template:
 
 ```toml
 [dunst]
-enabled = true
 output-file = "~/.config/dunst/dunstrc"
 color-format = "hex6"
 template = "dunstrc-template"
@@ -1173,7 +1161,6 @@ syntax = "{placeholder}"
 
 ```toml
 [alacritty]
-enabled = true
 output-file = "~/.config/alacritty/colors.yml"
 color-format = "hex6"
 template = "alacritty-colors.yml"
@@ -1268,8 +1255,6 @@ colors:
 
 [i3]
 
-enabled = true
-
 output-file = "~/.config/i3/colors"
 
 color-format = "hex6"
@@ -1342,7 +1327,6 @@ bar {
 
 ```toml
 [web-theme]
-enabled = true
 output-file = "~/projects/website/theme.css"
 color-format = "rgba"
 template = "theme-template.css"
@@ -1473,7 +1457,7 @@ custom = {my-custom-color}     # Unchanged
 
 ```toml
 [app_name]
-enabled = true
+# enabled = true                        # Optional: Defaults to true if not set.
 output-file = "/path/to/output"
 color-format = "hex6"
 template = "template-file.template"
@@ -1502,8 +1486,6 @@ custom-name-2 = { source = "ansi-1", brightness = 1.2 }
 ```toml
 
 [dunst]
-
-enabled = true
 
 output-file = "~/.config/dunst/dunstrc"
 
@@ -1594,8 +1576,6 @@ terminal_red = { source = "ansi-1" }
 ```toml
 
 [rofi]
-
-enabled = true
 
 output-file = "~/.config/rofi/theme.rasi"
 
@@ -1783,8 +1763,6 @@ You don't have to define many colors - just what you need:
 
 [simple]
 
-enabled = true
-
 output-file = "colors.conf"
 
 color-format = "rgb"
@@ -1834,8 +1812,6 @@ other_setting = some_value
 ```toml
 
 [terminal-scheme]
-
-enabled = true
 
 output-file = "term-colors.conf"
 
