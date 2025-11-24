@@ -179,11 +179,11 @@ class Config:
         self.apps: dict[str, AppSettings] = {
             name: AppSettings.from_dict(data)
             for name, data in app_data.items()
-            if isinstance(data, dict) and data.get("enabled", False)
+            if isinstance(data, dict) and data.get("enabled", True)
         }
 
     @property
-    def enabled_apps(self) -> list[str]:
+    def enabled_apps(self) -> tuple[str, ...]:
         """
         Get list of enabled application names.
 
@@ -194,7 +194,7 @@ class Config:
             >>> config.enabled_apps
             ['rofi', 'hyprland', 'waybar']
         """
-        return list(self.apps.keys())
+        return tuple(self.apps.keys())
 
     def get_app(self, app_name: str) -> AppSettings:
         """

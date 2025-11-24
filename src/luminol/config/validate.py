@@ -36,7 +36,7 @@ GLOBAL_SCHEMA = {
 
 # Schema for application
 APPLICATION_SCHEMA = {
-    "enabled": {"type": bool, "required": True},
+    "enabled": {"type": bool, "required": False},
     "color-format": {"type": str, "required": True, "allowed": SUPPORTED_COLOR_FORMATS},
     "output-file": {"type": str, "required": True},
     "syntax": {"type": str, "required": True},
