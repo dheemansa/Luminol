@@ -1,12 +1,12 @@
 from .utils.logging_config import configure_logging
 from .core.engine import run_luminol
-from .cli.cli_parser import parse_arguments
+from .cli.cli_parser import parse_main_cli_args
 
 
 def main():
     """Main entry point for the Luminol application."""
 
-    args = parse_arguments()
+    args = parse_main_cli_args()
 
     # if args.verbvose is true, then enable verbose logging
     configure_logging(verbose=args.verbose)

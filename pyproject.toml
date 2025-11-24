@@ -13,7 +13,8 @@ dependencies = ["pillow", "numpy"]
 
 
 [project.scripts]
-luminol = "luminol.main_cli:main"
+lumi = "luminol.main_cli:main"
+lumid = "luminol.main_cli_daemon:main"
 
 [tool.pylint.messages_control]
 disable = ["E0402"]
