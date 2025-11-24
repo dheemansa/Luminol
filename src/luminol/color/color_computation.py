@@ -132,7 +132,7 @@ def _find_optimal_blend_for_contrast(
 
         t = (L_required - source_luma) / denominator
 
-    else:  # darken_toward
+    elif darken_toward:
         # Darken the darker color
         target_luma = darken_toward.luma / 255.0
         source_luma = darker_luma
@@ -146,6 +146,9 @@ def _find_optimal_blend_for_contrast(
             return 0.0
 
         t = (L_required - source_luma) / denominator
+
+    else:  # just to statisfy type checker
+        raise ValueError("Must specify either brighten_toward or darken_toward")
 
     return max(0.0, min(max_blend, t))
 
