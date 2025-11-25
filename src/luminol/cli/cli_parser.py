@@ -21,13 +21,12 @@ def image_path(path: str) -> Path:
     return absolute_path
 
 
-def add_base_args(parser: argparse.ArgumentParser, image_required: bool = False):
+def add_base_args(parser: argparse.ArgumentParser):
     """Adds arguments related to running color extraction to the parser."""
     parser.add_argument(
         "-i",
         "--image",
         type=image_path,
-        required=image_required,
         help="Path to the image file to generate colors from.",
     )
     parser.add_argument(
@@ -52,9 +51,20 @@ def add_base_args(parser: argparse.ArgumentParser, image_required: bool = False)
         action="store_true",
         help="Preview the generated palette in the terminal without writing any files.",
     )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate the configuration file and exit. Overrides all other commands.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable detailed logging for debugging.",
+    )
 
 
-def validate_main_cli_args(parser, args):
+def validate_cli_args(parser, args):
     """Validates arguments for the main non-daemon CLI."""
     if not args.image and not args.validate:
         parser.error("--image is required unless you are using --validate.")
@@ -78,25 +88,14 @@ def parse_main_cli_args():
         prog="lumi",
         description="A tool to generate color palettes from images and apply them to system configs.",
     )
-    add_base_args(parser, image_required=False)
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Enable detailed logging for debugging.",
-    )
-    parser.add_argument(
-        "--validate",
-        action="store_true",
-        help="Validate the configuration file and exit. All other flags are ignored, except for --verbose.",
-    )
+    add_base_args(parser)
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
     args = parser.parse_args()
-    validate_main_cli_args(parser, args)
+    validate_cli_args(parser, args)
     return args
 
 
@@ -106,17 +105,6 @@ def parse_daemon_cli_args():
         prog="lumid",
         description="A client to control the Luminol daemon and run color extraction tasks.",
     )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Enable detailed logging for debugging.",
-    )
-    parser.add_argument(
-        "--validate",
-        action="store_true",
-        help="Validate the configuration file and exit. Overrides all other commands.",
-    )
 
     # Subparsers are not required, to allow --validate to be used alone
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -125,14 +113,22 @@ def parse_daemon_cli_args():
     run_parser = subparsers.add_parser(
         "run", help="Generate and apply a color palette from an image."
     )
-    add_base_args(run_parser, image_required=True)
+    add_base_args(run_parser)
 
     # daemon control commands
-    subparsers.add_parser("start", help="Start the luminol daemon.")
+    start_parser = subparsers.add_parser("start", help="Start the luminol daemon.")
+    start_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Run the daemon in the foreground for debugging.",
+    )
     subparsers.add_parser("stop", help="Stop the luminol daemon.")
-    subparsers.add_parser("status", help="Check the status of the luminol daemon.")
+    subparsers.add_parser("ping", help="Check the status of the luminol daemon.")
 
     args = parser.parse_args()
+
+    if args.command == "run":
+        validate_cli_args(parser, args)
 
     # If no command is given and --validate is not used, print help.
     if not args.command and not args.validate:

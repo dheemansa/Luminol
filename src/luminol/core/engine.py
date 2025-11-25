@@ -4,6 +4,7 @@ import shutil
 import time
 
 from ..cli.term_colors import AnsiColors
+from ..utils.logging_config import configure_logging
 from ..color.assign import assign_color
 from ..color.extraction import extract_colors
 from ..config.parser import Config, load_config
@@ -142,7 +143,9 @@ def run_luminol(
     preview_only: bool,
     validate_only: bool,
     dry_run_only: bool,
+    verbose: bool = False,
 ):
+    configure_logging(verbose)
     # NOTE: The quality flag is handled manually instead of setting a default in argparse.
     # This ensures that commands unrelated to image processing (like --validate)
     # don’t incorrectly trigger validation errors due to an implicit "balanced" default.
@@ -166,7 +169,7 @@ def run_luminol(
 
     # if validation_flag is true then stop the program just after validation
     if validate_only is True:
-        print(
+        logging.info(
             f"{AnsiColors.SUCCESS}✓ Configuration validation successful.{AnsiColors.RESET}"
         )
         raise SystemExit(0)

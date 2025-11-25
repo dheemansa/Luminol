@@ -11,7 +11,7 @@ def main():
     # if args.verbvose is true, then enable verbose logging
     configure_logging(verbose=args.verbose)
 
-    # verbose_flag: bool = args.verbose
+    verbose_flag: bool = args.verbose
     image_path: str = args.image
     theme_type: str | None = args.theme
     quality: str | None = args.quality
@@ -20,7 +20,13 @@ def main():
     dry_run_only: bool = args.dry_run
 
     run_luminol(
-        image_path, theme_type, quality, preview_only, validate_only, dry_run_only
+        image_path,
+        theme_type,
+        quality,
+        preview_only,
+        validate_only,
+        dry_run_only,
+        verbose_flag,
     )
 
 
