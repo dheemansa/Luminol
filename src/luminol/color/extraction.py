@@ -57,7 +57,7 @@ def extract_colors_kmeans(
                 if not (img.width <= resize_dim[0] and img.height <= resize_dim[1]):
                     img.thumbnail(
                         resize_dim,
-                        Image.Resampling.NEAREST,
+                        Image.Resampling.BILINEAR,  # to get good variety of colors
                     )
 
                 resize_end = time.perf_counter()
