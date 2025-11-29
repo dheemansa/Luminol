@@ -7,7 +7,7 @@ from luminol.daemon.protocol import print_response_and_exit
 
 from .daemon.client import PID_FILE, SOCKET_FILE, send_request, run, ping, server_stop
 from .utils.logging_config import configure_logging
-from .cli.cli_parser import parse_daemon_cli_args
+from .cli.parser import parse_daemon_cli_args
 
 
 def stop_daemon():
@@ -57,7 +57,7 @@ def handle_start(args):
         pass  # Expected if daemon is not running
 
     # Intentional lazy load
-    from .daemon.server import server_start
+    from .daemon.server import server_start  # pylint: disable= import-outside-toplevel
 
     print("Starting Luminol daemon...")
     server_start(debug=args.debug)
@@ -68,8 +68,8 @@ def handle_start(args):
                 print("Daemon has started")
             else:
                 print("Daemon failed to start.")
-        except (ConnectionRefusedError, FileNotFoundError) as e:
-            print(f"Daemon failed to start. Error: {e}")
+        except (ConnectionRefusedError, FileNotFoundError):
+            logging.exception("Daemon failed to start")
 
 
 def handle_ping():
@@ -87,8 +87,8 @@ def handle_ping():
             print(f"Daemon returned an error: {response.get('error', 'Unknown error')}")
     except (ConnectionRefusedError, FileNotFoundError):
         print("Daemon is not running.")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    except Exception:
+        logging.exception("An unexpected error occurred")
 
 
 def handle_run(args):
@@ -114,8 +114,8 @@ def handle_run(args):
     except (ConnectionRefusedError, FileNotFoundError):
         print("Daemon is not running. Please start it with 'lumid start'.")
         sys.exit(1)
-    except Exception as e:
-        logging.error(f"Failed to send command to daemon: {e}", exc_info=True)
+    except Exception:
+        logging.exception("Failed to send command to daemon")
         sys.exit(1)
 
 

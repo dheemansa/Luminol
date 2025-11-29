@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from .path import _expand_path
+from .path_utils import _expand_path
 
 
 def write_file(file_path: str | Path, content: str | list[str]) -> Path | None:

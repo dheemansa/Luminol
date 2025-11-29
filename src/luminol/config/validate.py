@@ -16,7 +16,7 @@ from ..core.constants import (
     SUPPORTED_COLOR_FORMATS,
     SUPPORTED_COLOR_TRANFORMATION,
 )
-from ..utils.path import _expand_path, _is_file_name, get_luminol_dir
+from ..utils.path_utils import _expand_path, _is_file_name, get_luminol_dir
 
 WARN = AnsiColors.WARNING
 INFO = AnsiColors.INFO

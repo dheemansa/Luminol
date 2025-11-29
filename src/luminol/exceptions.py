@@ -1,4 +1,4 @@
-from ..cli.term_colors import AnsiColors
+from .cli.term_colors import AnsiColors
 
 ERR = AnsiColors.ERROR
 RESET = AnsiColors.RESET

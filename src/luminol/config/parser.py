@@ -4,8 +4,8 @@ from pathlib import Path
 import tomllib
 from typing import Any
 
-from ..exceptions.exceptions import InvalidConfigError
-from ..utils.path import _expand_path, get_luminol_dir, _is_file_name
+from ..exceptions import InvalidConfigError
+from ..utils.path_utils import _expand_path, get_luminol_dir, _is_file_name
 from .validate import validate_application_config, validate_global_config
 
 
