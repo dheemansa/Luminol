@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 def _expand_path(path: str | Path) -> Path:
     path = str(path)
-    return Path(os.path.expandvars(os.path.expanduser(path)))
+    return Path(os.path.expandvars(os.path.expanduser(path))).resolve()
 
 
 def _validate_path(path: Path, path_type: str = "directory") -> Path:

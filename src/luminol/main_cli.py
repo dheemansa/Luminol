@@ -1,6 +1,6 @@
 from .utils.logging_config import configure_logging
 from .core.engine import run_luminol
-from .cli.cli_parser import parse_main_cli_args
+from .cli.parser import parse_main_cli_args
 
 
 def main():
@@ -8,7 +8,7 @@ def main():
 
     args = parse_main_cli_args()
 
-    # if args.verbvose is true, then enable verbose logging
+    # if args.verbose is true, then enable verbose logging
     configure_logging(verbose=args.verbose)
 
     verbose_flag: bool = args.verbose

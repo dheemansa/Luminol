@@ -9,10 +9,10 @@ from ..color.assign import assign_color
 from ..color.extraction import extract_colors
 from ..config.parser import Config, load_config
 from .test_preset import TEST_PRESET
-from ..exceptions.exceptions import InvalidConfigError, WallpaperSetError
+from ..exceptions import InvalidConfigError, WallpaperSetError
 from ..utils.file_io import write_file
 from ..utils.palette_generator import compile_color_syntax, compile_template
-from ..utils.path import (
+from ..utils.path_utils import (
     clear_directory,
     clear_old_logs,
     get_cache_dir,
