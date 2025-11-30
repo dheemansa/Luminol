@@ -61,7 +61,7 @@ def extract_colors_kmeans(
                     )
 
                 resize_end = time.perf_counter()
-                logging.warning("Resize time: %s", resize_end - resize_start)
+                logging.debug("Resize time: %s", resize_end - resize_start)
 
             start = time.perf_counter()
             # Convert to numpy array
@@ -167,7 +167,7 @@ def extract_colors_kmeans(
                     result_list.append(ColorData(RGB(r, g, b), coverage))
 
             end = time.perf_counter()
-            logging.warning("Kmeans time: %s", end - start)
+            logging.debug("Kmeans time: %s", end - start)
             return result_list
     except Exception as e:
         raise RuntimeError("Error while extracting colors") from e

@@ -3,12 +3,11 @@ from pathlib import Path
 import shutil
 import time
 
-from ..cli.term_colors import AnsiColors
+from ..cli.term_colors import AnsiColors, tty_color_sequence, preview_theme
 from ..utils.logging_config import configure_logging
-from ..color.assign import assign_color
+from ..color.color_assign import assign_color
 from ..color.extraction import extract_colors
 from ..config.parser import Config, load_config
-from .test_preset import TEST_PRESET
 from ..exceptions import InvalidConfigError, WallpaperSetError
 from ..utils.file_io import write_file
 from ..utils.palette_generator import compile_color_syntax, compile_template
@@ -36,9 +35,11 @@ def handle_preview_mode(image_path: str | Path, quality: str):
         sort_by="luma",
     )
 
+    print("Extracted Colors:")
     for c in colors:
-        print(c.rgb, end=" ")
+        print(c.rgb, end=" ", flush=True)
 
+    print("\n")
     end = time.perf_counter()
     logging.info("Color Extraction took %.4f seconds", end - start)
 
@@ -188,8 +189,8 @@ def run_luminol(
     color_data = extract_colors(
         image_path=image_path, num_colors=8, preset=quality, sort_by="luma"
     )
-    for col in color_data:
-        print(col)
+    # for col in color_data:
+    #     print(col)
 
     extract_end = time.perf_counter()
     logging.debug("Extraction took: %s", extract_end - extract_start)
@@ -202,19 +203,26 @@ def run_luminol(
 
     # if theme is set in cli then override the theme_type in config
     if theme_type is not None:
-        assign_color(color_data=color_data, theme_type=theme_type)
+        color_palette = assign_color(
+            color_data=color_data,
+            theme_type=theme_type,
+            presorted=True,
+        )
     else:
-        assign_color(
-            color_data=color_data, theme_type=config.global_settings.theme_type
+        color_palette = assign_color(
+            color_data=color_data,
+            theme_type=config.global_settings.theme_type,
+            presorted=True,
         )
 
+    preview_theme(color_palette)
     assign_end_time = time.perf_counter()
     logging.debug("Color assign took %s", assign_end_time - assign_start_time)
 
     # generate palette files
     palette_start_time = time.perf_counter()
 
-    generate_palette_files(config=config, color_palette=TEST_PRESET)
+    generate_palette_files(config=config, color_palette=color_palette)
 
     if dry_run_only is True:
         # when dry_run is enabled
@@ -232,7 +240,7 @@ def run_luminol(
     )
 
     # TODO: also make a tty reload similar to pywall
-
+    print(tty_color_sequence(color_palette), end="")
     reload_commands(config=config, log_dir=log_dir)
 
     if log_dir:
