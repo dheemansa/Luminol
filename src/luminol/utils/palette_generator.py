@@ -6,65 +6,34 @@ from ..core.data_types import RGB, RGBA
 
 
 def _convert_format(color: RGB | RGBA, color_format: str) -> str:
+    """Converts a color object to the specified string format."""
     if color_format not in SUPPORTED_COLOR_FORMATS:
-        raise ValueError(
-            f"{color_format} is not a supported color format, \
-            Supported formats are {', '.join(SUPPORTED_COLOR_FORMATS)}"
-        )
+        raise ValueError(f"{color_format} is not a supported color format.")
 
     if color_format == "hex6":
-        if isinstance(color, RGB):
-            final_color: str = color.hex
-        else:
-            final_color: str = color.hex6
-
-        return final_color
+        return color.hex
 
     if color_format == "rgb":
-        if isinstance(color, RGB):
-            r, g, b = color
-        else:
-            r, g, b, a = color
-
-        final_color = f"rgb({r}, {g}, {b})"
-        return final_color
+        return f"rgb({color.r}, {color.g}, {color.b})"
 
     if color_format == "rgb_decimal":
-        if isinstance(color, RGB):
-            r, g, b = color
-        else:
-            r, g, b, a = color
+        return f"{color.r}, {color.g}, {color.b}"
 
-        final_color = f"{r}, {g}, {b}"
-        return final_color
-
-    if color_format == "hex8":
-        if isinstance(color, RGB):
-            # force opacity to max
-            final_color = f"{color.hex}FF"
-        else:
-            final_color = f"{color.hex8}"
-        return final_color
-
-    if color_format == "rgba":
-        if isinstance(color, RGB):
-            # force opacity to max
-            r, g, b = color
-            final_color = f"rgba({r}, {g}, {b}, 1.0)"
-        else:
-            r, g, b, a = color
-            final_color = f"rgba({r}, {g}, {b}, {a})"
-        return final_color
-
-    if color_format == "rgba_decimal":
-        if isinstance(color, RGB):
-            # force opacity to max
-            r, g, b = color
-            final_color = f"{r}, {g}, {b}, 1.0"
-        else:
-            r, g, b, a = color
-            final_color = f"{r}, {g}, {b}, {a}"
-        return final_color
+    # Handle formats that require alpha
+    if isinstance(color, RGBA):
+        if color_format == "hex8":
+            return color.hex8
+        if color_format == "rgba":
+            return f"rgba({color.r}, {color.g}, {color.b}, {color.a})"
+        if color_format == "rgba_decimal":
+            return f"{color.r}, {color.g}, {color.b}, {color.a}"
+    else:  # It's a base RGB, so force full opacity for alpha formats
+        if color_format == "hex8":
+            return f"{color.hex}ff"
+        if color_format == "rgba":
+            return f"rgba({color.r}, {color.g}, {color.b}, 1.0)"
+        if color_format == "rgba_decimal":
+            return f"{color.r}, {color.g}, {color.b}, 1.0"
 
 
 def compile_color_syntax(
@@ -130,16 +99,16 @@ def compile_color_syntax(
             ["$primary: #FF8000;", "$secondary: #0080FF;"]
 
     Examples:
-        >>> colors ={"primary":RGB(255, 128, 0), "secondary": RGB(0, 128, 255)}
+        >>> colors ={"primary":RGB(255, 0, 60), "secondary": RGB(0, 128, 255)}
         >>> compile_color_syntax(colors, "${name}: {color};", "hex6")
-        ['$primary: #FF8000;', '$secondary: #0080FF;']
+        ['$primary: #ff003c;', '$secondary: #0080FF;']
 
         >>> compile_color_syntax(colors, "--{name}: {color};", "rgb")
-        ['--primary: rgb(255, 128, 0);', '--secondary: rgb(0, 128, 255);']
+        ['--primary: rgb(110, 0, 132);', '--secondary: rgb(0, 128, 255);']
 
         >>> remap = {"highlight": {"source": "primary", "brightness": 1.2}}
         >>> compile_color_syntax(colors,"{name}: {color}", "hex6", remap=remap)
-        ['highlight: #FFB84D']
+        ['highlight: #84009e']
 
     Notes:
         - When remap is None, all colors in named_colors are processed
