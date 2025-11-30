@@ -32,6 +32,7 @@ GLOBAL_SCHEMA = {
     "reload-commands": {"type": list},
     "use-shell": {"type": bool},
     "log-output": {"type": bool},
+    "tty-reload": {"type": bool},
 }
 
 # Schema for application

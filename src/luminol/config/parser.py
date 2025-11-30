@@ -118,7 +118,7 @@ class GlobalSettings:
             theme_type=data.get("theme-type", "auto"),
             use_shell=data.get("use-shell", False),
             log_output=data.get("log-output", False),
-            tty_reload=data.get("tty-reload", False),
+            tty_reload=data.get("tty-reload", True),
         )
 
 
