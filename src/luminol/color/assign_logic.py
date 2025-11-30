@@ -22,7 +22,7 @@ import logging
 
 from ..core.data_types import ColorData, RGB
 from .color_math import blend, contrast_ratio, find_optimal_blend
-from .transformation import brighten, saturate
+from .transformation import brighten, saturate, shift_hue
 
 # Neutral colors for blending - slightly off pure white/black for better aesthetics
 NEUTRAL_WHITE = RGB(238, 238, 238)
@@ -39,7 +39,7 @@ TERTIARY_CONTRAST_TARGET = 5  # Text on elevated surfaces - slightly higher than
 
 # Limit foreground saturation to 30% to ensure it is not very vibrant
 MAX_SATURATION_FG_PRIMARY = 0.3
-LIGHT_MAX_SATURATION_FG_TERTIARY = 0.4
+LIGHT_MAX_SATURATION_FG_TERTIARY = 0.2
 
 # thresholds to ensure readable text
 # Based on testing
@@ -51,21 +51,20 @@ DARK_BG_DARKEN_AMOUNT = 0.3  # 30%
 ACCENT_MIN_COVERAGE_RATIO = 0.10
 
 
-def _assign_bg(color_data: list[ColorData], theme: str) -> tuple[RGB, RGB, RGB]:
+def _assign_bg(color_data: list[ColorData], theme: str) -> tuple[RGB, RGB]:
     """
-    Assign primary, secondary, and tertiary background colors.
+    Assign primary and secondary background colors.
 
     Background hierarchy creates visual depth:
     - Primary: Main application surface (deepest layer)
     - Secondary: Slightly elevated surfaces (toolbars, sidebars)
-    - Tertiary: Most elevated surfaces (cards, modals, tooltips)
 
     Args:
         color_data: List of ColorData sorted by luminance (brightest to darkest)
         theme: "dark" or "light"
 
     Returns:
-        Tuple of (primary_bg, secondary_bg, tertiary_bg)
+        Tuple of (primary_bg, secondary_bg)
     """
     if theme == "dark":
         # Primary: Use the darkest color and darken it further for depth
@@ -89,17 +88,6 @@ def _assign_bg(color_data: list[ColorData], theme: str) -> tuple[RGB, RGB, RGB]:
         else:
             secondary = secondary_candidate
 
-        # Tertiary: Most elevated surfaces - pick a saturated lighter color
-        # This creates visual "pop" for cards and elevated elements
-        tert_candidate = color_data[2:-3]  # C2 to C5, lighter mid-range colors
-        tertiary = max(tert_candidate, key=lambda col: col.coverage * col.rgb.hsv.s).rgb
-
-        # Ensure tertiary is bright enough to stand out from primary/secondary
-        if tertiary.luma < 50:
-            logging.debug("Tertiary bg too dark, brightening")
-            # tertiary = brighten(tertiary, 1.5)
-            tertiary = blend(tertiary, NEUTRAL_WHITE, 0.3)
-
     else:  # Light theme
         # Primary: Pick the brightest color with high coverage
         # this eliminates non-dominant colors which are light
@@ -120,11 +108,7 @@ def _assign_bg(color_data: list[ColorData], theme: str) -> tuple[RGB, RGB, RGB]:
         # Creates subtle depth in light themes (e.g., cards slightly lifted)
         secondary = blend(primary, NEUTRAL_WHITE, 0.4)
 
-        # Tertiary: Darker, saturated color for maximum elevation effect
-        tert_candidate = color_data[3:-1]  # C3 to C7, darker colors
-        tertiary = max(tert_candidate, key=lambda col: col.coverage * col.rgb.hsv.s).rgb
-
-    return primary, secondary, tertiary
+    return primary, secondary
 
 
 def _assign_fg(
@@ -254,19 +238,10 @@ def _assign_fg(
         if primary.hsv.s > MAX_SATURATION_FG_PRIMARY:
             primary = blend(primary, NEUTRAL_BLACK, 0.3)
 
-    # set blend direction for secondary/tertiary text
-    if theme == "dark":
-        # Dark theme: secondary text blends toward white (brighter = more prominent)
-        # tertiary fg blends toward black (darker for contrast with lighter tertiary bg)
-        secondary_blend_col = NEUTRAL_WHITE
-        tert_blend_col = NEUTRAL_BLACK
-    else:
-        # Light theme: secondary text blends toward black (darker = more prominent)
-        # tertiary fg blends toward white (lighter for contrast with darker tertiary bg)
-        secondary_blend_col = NEUTRAL_BLACK
-        tert_blend_col = NEUTRAL_WHITE
+    # --- Secondary and Tertiary Foreground ---
 
-    # secondary
+    # For secondary text, the blend direction is based on the main theme
+    secondary_blend_col = NEUTRAL_WHITE if theme == "dark" else NEUTRAL_BLACK
 
     # Using candidate to preserve original color character - 'primary' has been
     # heavily adjusted for contrast/saturation and lost its distinctive hue
@@ -274,7 +249,6 @@ def _assign_fg(
 
     if pre_secondary_contrast >= SECONDARY_CONTRAST_TARGET:
         secondary = primary_candidate
-
     else:
         secondary_blend_ratio = find_optimal_blend(
             base_col=primary_candidate,
@@ -282,7 +256,6 @@ def _assign_fg(
             contrast_with=bg_secondary,
             target_contrast=SECONDARY_CONTRAST_TARGET,
         )
-
         if secondary_blend_ratio > 0:
             secondary = blend(
                 primary_candidate, secondary_blend_col, secondary_blend_ratio
@@ -291,7 +264,15 @@ def _assign_fg(
             # Fallback: Simple blend toward neutral
             secondary = blend(primary_candidate, secondary_blend_col, 0.5)
 
-    # Use bg_primary as base - it naturally contrasts with bg_tertiary (elevated surfaces)
+    # if bg_tertiary.luma > 90: # this gives better results for light theme
+    if bg_tertiary.hsv.v > 0.65:
+        # If bg_tertiary is light, text should be dark
+        tert_blend_col = NEUTRAL_BLACK
+    else:
+        # If bg_tertiary is dark, text should be light
+        tert_blend_col = NEUTRAL_WHITE
+
+    # Use bg_primary as a neutral base to create the tertiary text color
     pre_tertiary_contrast = contrast_ratio(bg_primary.luma, bg_tertiary.luma)
 
     if pre_tertiary_contrast >= TERTIARY_CONTRAST_TARGET:
@@ -306,73 +287,117 @@ def _assign_fg(
         if tert_blend_ratio > 0:
             tertiary = blend(bg_primary, tert_blend_col, tert_blend_ratio)
         else:
-            # Fallback: Simple blend
-            tertiary = blend(bg_primary, tert_blend_col, 0.5)
+            tertiary = blend(bg_primary, tert_blend_col, 0.6)
+            # Fallback: Simple blend if optimization fails
+            post_contrast = contrast_ratio(tertiary.luma, bg_tertiary.luma)
+            if post_contrast < TERTIARY_CONTRAST_TARGET:
+                blend_ratio = find_optimal_blend(
+                    base_col=bg_primary,
+                    blend_col=tert_blend_col,
+                    contrast_with=bg_tertiary,
+                    target_contrast=TERTIARY_CONTRAST_TARGET
+                    - 1,  # at least try to achieve some contrast
+                )
+                if blend_ratio > 0:
+                    tertiary = blend(bg_primary, tert_blend_col, blend_ratio)
 
-    # Additional saturation control for light theme tertiary text
-    # to ensure it is not very vibrant
+                else:
+                    tertiary = blend(bg_primary, tert_blend_col, 0.8)
+
+    # Saturation control for light theme tertiary text on potentially dark bg
     if theme == "light" and tertiary.hsv.s > LIGHT_MAX_SATURATION_FG_TERTIARY:
-        tertiary = blend(tertiary, tert_blend_col, 0.3)
+        tertiary = blend(tertiary, tert_blend_col, 0.9)
+        # tertiary = saturate(tertiary, 0.3)
 
     return primary, secondary, tertiary
 
 
-def _assign_accent(color_data: list[ColorData], theme_type: str) -> tuple[RGB, RGB]:
+def _select_vibrant_color(color_data: list[ColorData], theme: str) -> RGB:
     """
-    Assign primary and secondary accent colors.
+    Selects the most suitable vibrant color for accents and key surfaces.
 
-    Accents are used for:
-    - Primary: Buttons, links, active states, brand elements
-    - Secondary: Hover states, focus rings, highlights
-
-    Strategy: Pick the most saturated color to create visual emphasis.
+    This version is for dark themes and adds a preference for lighter colors.
 
     Args:
-        color_data: List of ColorData sorted by luminance (brightest to darkest)
-        theme_type: "dark" or "light"
+        color_data: List of ColorData sorted by luminance (brightest to darkest).
+        theme: "dark" or "light".
 
     Returns:
-        Tuple of (primary_accent, secondary_accent)
+        The selected vibrant RGB color.
     """
-    if theme_type == "dark":
-        # Avoid extremes: skip C1 (too bright) and C7-C8 (too dark for visibility)
-        primary_candidate = color_data[1:-2]
+    # Define ideal saturation and brightness ranges
+    TARGET_SATURATION = 0.6
+    SATURATION_WEIGHT = 0.5
+    COVERAGE_WEIGHT = 0.3
+    LUMA_WEIGHT = 0.2
 
-        # Pick the most saturated color for maximum visual impact
-        primary = max(
-            primary_candidate,
-            # key=lambda col: col.rgb.hsv.s * col.rgb.hsv.v,
-            key=lambda col: col.rgb.hsv.s,
-        ).rgb
+    min_luma = 60
+    max_luma = 180
 
-        # Ensure accent is bright enough to stand out on dark backgrounds
-        if primary.luma < 80:
-            primary = brighten(primary, 1.8)
-            primary = saturate(primary, 1.2)
+    # Filter candidates based on theme
+    if theme == "dark":
+        # For dark themes, prefer brighter, but not extreme, colors.
+        candidates = color_data[1:-2]
+        candidates = [c for c in candidates if c.rgb.luma > min_luma]
+    else:  # Light theme
+        # For light themes, logic is same as V1.
+        candidates = color_data[3:-1]
+        candidates = [c for c in candidates if c.rgb.luma < max_luma]
 
-    else:
-        # Skip C1-C3 (too light for visibility) and C8 (reserved for text
-        primary = max(
-            color_data[3:-1], key=lambda col: col.rgb.hsv.s
-        ).rgb  # omit C1 to C3 and C8
+    if not candidates:
+        # Fallback: if filtering is too aggressive, use a wider slice and pick most saturated.
+        logging.warning(
+            "No ideal vibrant color candidates found, using fallback logic."
+        )
+        candidates = color_data[1:-1]
+        if not candidates:
+            return color_data[len(color_data) // 2].rgb  # Absolute fallback
+        return max(candidates, key=lambda c: c.rgb.hsv.s * c.rgb.hsv.v).rgb
 
-    # Boost saturation if accent is too muted
-    # Accents should be vibrant to draw attention
-    if primary.hsv.s < 0.2:
-        primary = saturate(primary, 2.0)
-    elif primary.hsv.s < 0.4:
-        primary = saturate(primary, 1.8)
+    # Score candidates
+    scored_candidates = []
+    for color in candidates:
+        saturation = color.rgb.hsv.s
+        coverage = color.coverage
+        luma = color.rgb.luma
 
-    # secondary(TODO: needs improvement)
-    if theme_type == "dark":
-        # Make it brighter and slightly more saturated than primary
-        brighter_accent = brighten(primary, 1.2)
+        # Score saturation based on distance from target
+        saturation_score = 1.0 - abs(saturation - TARGET_SATURATION)
+        score = (SATURATION_WEIGHT * saturation_score) + (COVERAGE_WEIGHT * coverage)
+
+        # Add luma score only for dark mode
+        if theme == "dark":
+            luma_score = (luma - min_luma) / (255 - min_luma)
+            score += LUMA_WEIGHT * luma_score
+
+        scored_candidates.append((score, color.rgb))
+
+    # Return the color with the highest score
+    best_color = max(scored_candidates, key=lambda item: item[0])[1]
+
+    # Post-process to guarantee minimum vibrancy and avoid excessive saturation
+    final_saturation = best_color.hsv.s
+    if final_saturation < 0.25:
+        best_color = saturate(best_color, 1.5)  # Boost muted colors
+    elif final_saturation > 0.85:
+        best_color = saturate(best_color, 0.8)  # Tone down electric colors
+
+    return best_color
+
+
+def _derive_secondary_accent(accent_primary: RGB, theme: str) -> RGB:
+    """
+    Derives a secondary accent color from the primary accent.
+    Used for hover states, focus rings, etc.
+    """
+    if theme == "dark":
+        # Make it brighter and slightly more saturated for pop
+        brighter_accent = brighten(accent_primary, 1.2)
         secondary = saturate(brighter_accent, 1.1)
     else:  # Light theme
         # Make it slightly darker for subtle differentiation
-        secondary = brighten(primary, 0.9)
-
-    return primary, secondary
+        secondary = brighten(accent_primary, 0.9)
+    return secondary
 
 
 def _assign_border(accent_primary: RGB, bg_primary: RGB) -> tuple[RGB, RGB]:

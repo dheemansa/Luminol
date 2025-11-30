@@ -167,7 +167,6 @@ This is the **simplest mode**, used when you don't specify a `template` or enabl
 #### Key Characteristics
 
 - ✅ Simple and quick to set up.
-- ✅ All 13 UI semantic colors are included automatically.
 - ❌ No customization of color names.
 - ❌ Cannot apply color transformations.
 

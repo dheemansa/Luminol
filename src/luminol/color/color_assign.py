@@ -2,11 +2,12 @@ import logging
 
 from ..core.data_types import ColorData, RGB
 from .assign_logic import (
-    _assign_accent,
     _assign_ansi_colors,
     _assign_bg,
     _assign_border,
     _assign_fg,
+    _derive_secondary_accent,
+    _select_vibrant_color,
 )
 from .color_math import contrast_ratio
 
@@ -72,11 +73,17 @@ def assign_color(
     logging.debug("Theme Type: %s", theme)
 
     # --- Color Role Assignment ---
-    bg_primary, bg_secondary, bg_tertiary = _assign_bg(color_data, theme)
+    bg_primary, bg_secondary = _assign_bg(color_data, theme)
+    
+    # Select a single vibrant color to be used for accents and elevated surfaces
+    vibrant_color = _select_vibrant_color(color_data, theme=theme)
+    bg_tertiary = vibrant_color
+    accent_primary = vibrant_color
+
     fg_primary, fg_secondary, fg_tertiary = _assign_fg(
         color_data, bg_primary, bg_secondary, bg_tertiary, theme=theme
     )
-    accent_primary, accent_secondary = _assign_accent(color_data, theme_type=theme)
+    accent_secondary = _derive_secondary_accent(accent_primary, theme=theme)
     active_border, inactive_border = _assign_border(accent_primary, bg_primary)
     ansi_colors = _assign_ansi_colors()
 
@@ -114,3 +121,4 @@ def assign_color(
         theme_dict["success-color"] = theme_dict["ansi-10"]  # Bright Green
 
     return theme_dict
+
