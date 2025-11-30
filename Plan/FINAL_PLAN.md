@@ -83,8 +83,10 @@ reload-commands = ["hyprctl reload", "killall -USR1 waybar"]
 # Default: false
 use-shell = false
 
-# Default: false
-tty-reload = false # this will reload the tty colors, will be implemented in later version
+# Whether to reload TTY colors.
+# This requires write permissions to /dev/vcs* and may require running luminol with sudo.
+# Default: true
+tty-reload = true
 
 # If true, stdout and stderr from reload commands and wallpaper command will be sent to a log file.
 # Default: false
@@ -149,7 +151,7 @@ Each application has its own section (e.g., `[rofi]`, `[dunst]`).
     - If this is just a filename (e.g., `rofi.css`), the palette is stored in the cache at
       `$XDG_CACHE_HOME/luminol/<app_name>/<filename>`. defaults to ~/.cache/luminol/.. if not set.
 - `color-format`: (Required) The output format for colors.
-    - **Valid values**: `hex6`, `hex8`, `rgb`, `rgba`, `rgb_decimal`, `rgba_decimal`
+    - **Valid values**: `hex6`, `hex8`, `hex6value`, `hex8value`, `rgb`, `rgba`, `rgb_decimal`, `rgba_decimal`
     - Alpha channel in formats like `hex6` and `rgb` is ignored; use `hex8`, `rgba`, or `rgba_decimal` for transparency
       support.
 - `syntax`: (Required) A pattern that defines how content is generated.
@@ -677,33 +679,62 @@ your-custom-name = { source = "semantic-color-name", transformation1 = value, tr
 
 ### Example 1: Hyprland Configuration
 
+Hyprland uses a specific `rgba(RRGGBBAA)` format for colors. The `hex8value` format is ideal for this, as it provides the hex code without the leading `#`.
+
 ```toml
 [hyprland]
 output-file = "~/.config/hypr/colors.conf"
-color-format = "rgba"
-syntax = "${name} = {color}"
+# Use hex8value to get RRGGBBAA
+color-format = "hex8value"
+# Construct the final variable assignment for Hyprland
+syntax = "${name} = rgba({color})"
 remap-colors = true
 
 [hyprland.colors]
-# Custom names matching Hyprland's expectations
-active-border = { source = "accent-primary" }
-inactive-border = { source = "bg-tertiary", brightness = 0.8 }
-background = { source = "bg-primary" }
-foreground = { source = "text-primary" }
-# Using ANSI colors for terminal integration
-terminal-red = { source = "ansi-1", opacity = 0.9 }
-terminal-blue = { source = "ansi-4" }
+# Hyprland variables often start with '$', but this should not be part of the name.
+# It is better to add it as part of the syntax if needed, but hyprland sources the file as is.
+"general:col.active_border" = { source = "accent-primary" }
+"general:col.inactive_border" = { source = "bg-tertiary", opacity = 0.8 }
+"general:col.background" = { source = "bg-primary" }
+"general:col.foreground" = { source = "text-primary" }
+
+# You can also use this for other parts of your hyprland config
+"decoration:col.shadow" = { source = "bg-primary", opacity = 0.5 }
 ```
 
 **Generated output (`colors.conf`):**
 
+```ini
+$general:col.active_border = rgba(6495ffff)
+$general:col.inactive_border = rgba(3a3a4acc)
+$general:col.background = rgba(1e1e2eff)
+$general:col.foreground = rgba(e0e0e0ff)
+$decoration:col.shadow = rgba(1e1e2e7f)
 ```
-$active-border = rgba(100, 149, 255, 1.0)
-$inactive-border = rgba(46, 46, 59, 1.0)
-$background = rgba(30, 30, 46, 1.0)
-$foreground = rgba(224, 224, 224, 1.0)
-$terminal-red = rgba(255, 50, 50, 0.9)
-$terminal-blue = rgba(80, 120, 255, 1.0)
+
+### Example 2: Hyprland with `hex6value` (Advanced/Illustrative)
+
+This example demonstrates using `hex6value` to get just the `RRGGBB` value. Note that for most Hyprland color settings, you will need an alpha channel, and `hex8value` is more appropriate as shown in the example above. Hyprland does not support `rgb()` syntax, so this example is purely illustrative of the format.
+
+```toml
+[hyprland-no-alpha]
+output-file = "~/.config/hypr/colors-no-alpha.conf"
+color-format = "hex6value"
+# This syntax is for demonstration. Hyprland does not use rgb().
+syntax = "${name} = rgb({color})"
+remap-colors = true
+
+[hyprland-no-alpha.colors]
+# These colors will not have transparency
+"col.active_border" = { source = "accent-primary" }
+"col.inactive_border" = { source = "bg-tertiary" }
+```
+
+**Generated output (`colors-no-alpha.conf`):**
+
+```ini
+$col.active_border = rgb(6495ff)
+$col.inactive_border = rgb(3a3a4a)
 ```
 
 ### Example 2: Waybar with Descriptive Names

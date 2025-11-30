@@ -13,6 +13,9 @@ def _convert_format(color: RGB | RGBA, color_format: str) -> str:
     if color_format == "hex6":
         return color.hex
 
+    if color_format == "hex6value":
+        return color.hex[1:]  # removes the '#' by slicing
+
     if color_format == "rgb":
         return f"rgb({color.r}, {color.g}, {color.b})"
 
@@ -23,6 +26,10 @@ def _convert_format(color: RGB | RGBA, color_format: str) -> str:
     if isinstance(color, RGBA):
         if color_format == "hex8":
             return color.hex8
+
+        if color_format == "hex8value":
+            return color.hex8[1:]  # removes the '#' by slicing
+
         if color_format == "rgba":
             return f"rgba({color.r}, {color.g}, {color.b}, {color.a})"
         if color_format == "rgba_decimal":
@@ -30,6 +37,10 @@ def _convert_format(color: RGB | RGBA, color_format: str) -> str:
     else:  # It's a base RGB, so force full opacity for alpha formats
         if color_format == "hex8":
             return f"{color.hex}ff"
+
+        if color_format == "hex8value":
+            return f"{color.hex}ff"[1:]  # removes the '#' by slicing
+
         if color_format == "rgba":
             return f"rgba({color.r}, {color.g}, {color.b}, 1.0)"
         if color_format == "rgba_decimal":

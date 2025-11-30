@@ -39,7 +39,9 @@ AVAILABLE_COLORS = (
 # All supported color format strings for output
 SUPPORTED_COLOR_FORMATS = (
     "hex6",
+    "hex6value",
     "hex8",
+    "hex8value",
     "rgb",
     "rgba",
     "rgb_decimal",
