@@ -2,7 +2,6 @@ import logging
 
 from ..core.data_types import ColorData, RGB
 from .assign_logic import (
-    _assign_ansi_colors,
     _assign_bg,
     _assign_border,
     _assign_fg,
@@ -10,6 +9,9 @@ from .assign_logic import (
     _select_vibrant_color,
 )
 from .color_math import contrast_ratio
+from .ansi_colors.assign_ansi import generate_ansi
+
+from .transformation import saturate
 
 THEME_THRESHOLD = 128  # ~ 255/2
 
@@ -74,7 +76,7 @@ def assign_color(
 
     # --- Color Role Assignment ---
     bg_primary, bg_secondary = _assign_bg(color_data, theme)
-    
+
     # Select a single vibrant color to be used for accents and elevated surfaces
     vibrant_color = _select_vibrant_color(color_data, theme=theme)
     bg_tertiary = vibrant_color
@@ -85,7 +87,6 @@ def assign_color(
     )
     accent_secondary = _derive_secondary_accent(accent_primary, theme=theme)
     active_border, inactive_border = _assign_border(accent_primary, bg_primary)
-    ansi_colors = _assign_ansi_colors()
 
     logging.debug(
         "Post Contrast Ratio: %.2f",
@@ -106,19 +107,19 @@ def assign_color(
         "border-inactive": inactive_border,
     }
 
-    # Add ANSI colors to the dictionary
-    for i, color in enumerate(ansi_colors):
-        theme_dict[f"ansi-{i}"] = color
+    ansi_colors = generate_ansi(color_data, theme_dict)
 
-    # Map semantic status colors to ANSI colors based on theme
     if theme == "dark":
-        theme_dict["error-color"] = theme_dict["ansi-1"]  # Red
-        theme_dict["warning-color"] = theme_dict["ansi-3"]  # Yellow
-        theme_dict["success-color"] = theme_dict["ansi-2"]  # Green
+        theme_dict["error-color"] = saturate(ansi_colors["ansi-1"], 1.10)  # Red
+        theme_dict["warning-color"] = saturate(ansi_colors["ansi-3"], 1.10)  # Yellow
+        theme_dict["success-color"] = saturate(ansi_colors["ansi-2"], 1.10)  # Green
     else:  # light theme
-        theme_dict["error-color"] = theme_dict["ansi-9"]  # Bright Red
-        theme_dict["warning-color"] = theme_dict["ansi-11"]  # Bright Yellow
-        theme_dict["success-color"] = theme_dict["ansi-10"]  # Bright Green
+        theme_dict["error-color"] = saturate(ansi_colors["ansi-9"], 1.10)  # Bright Red
+        theme_dict["warning-color"] = saturate(
+            ansi_colors["ansi-11"], 1.10
+        )  # Bright Yellow
+        theme_dict["success-color"] = saturate(
+            ansi_colors["ansi-10"], 1.10
+        )  # Bright Green
 
-    return theme_dict
-
+    return {**theme_dict, **ansi_colors}
