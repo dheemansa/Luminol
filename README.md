@@ -70,7 +70,7 @@ reload-commands = ["hyprctl reload", "killall -USR1 waybar"]
 # Default: false
 use-shell = false
 
-# Whether to reload current terminal colors. Not completely implemented
+# Whether to reload current terminal colors.
 # Default: true
 tty-reload = true
 
@@ -302,7 +302,7 @@ configuration.
 `accent-primary`, `accent-secondary`, `error-color`, `warning-color`, `success-color`, `border-active`,
 `border-inactive`.
 
-**ANSI Colors**: `ansi-0` to `ansi-15`. # not completely implemented
+**ANSI Colors**: `ansi-0` to `ansi-15`.
 
 ### Color Transformations
 
@@ -315,3 +315,9 @@ custom-name = { source = "text-primary", brightness = 1.2, opacity = 0.8 }
 ```
 
 **Available Transformations**: `hue`, `saturation`, `brightness`, `contrast`, `temperature`, `opacity`.
+
+## Acknowledgements
+
+- The foundational 4-bit ANSI color generation logic used as a fallback theme is based on the excellent
+  [4bit project](https://github.com/ciembor/4bit) by Maciej Ciemborowicz.
+- This project was heavily inspired by the pioneering work of [pywal](https://github.com/dylanaraps/pywal).
