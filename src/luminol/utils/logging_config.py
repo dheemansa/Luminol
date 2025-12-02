@@ -21,9 +21,6 @@ def configure_logging(verbose: bool):
         f"{BOLD}{ERR}CRITICAL{RESET}",
     )
 
-    if verbose:
-        logging_format = f"[%(levelname)s] [Module: {INFO}%(module)s{RESET} Func: {INFO}%(funcName)s{RESET}]\n%(message)s\n"
-    else:
-        logging_format = "[%(levelname)s] %(message)s"
+    logging_format = "[%(levelname)s] %(message)s"
 
     logging.basicConfig(level=logging_level, format=logging_format, force=True)
