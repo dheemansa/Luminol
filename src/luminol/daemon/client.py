@@ -30,7 +30,7 @@ def send_request(request: str) -> dict[str, Any]:
 
             try:
                 response: dict = json.loads(raw_response)
-                logging.debug(f"Server replied: {response}")
+                logging.debug("Server replied: %s", response)
 
             except json.JSONDecodeError:
                 # Send raw error if JSON is bad
