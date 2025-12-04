@@ -22,7 +22,7 @@ import logging
 
 from ..core.data_types import ColorData, RGB
 from .color_math import blend, contrast_ratio, find_optimal_blend
-from .transformation import brighten, saturate, shift_hue
+from .transformation import brighten, saturate
 
 # Neutral colors for blending - slightly off pure white/black for better aesthetics
 NEUTRAL_WHITE = RGB(238, 238, 238)
@@ -316,7 +316,12 @@ def _select_vibrant_color(color_data: list[ColorData], theme: str) -> RGB:
     """
     Selects the most suitable vibrant color for accents and key surfaces.
 
-    This version is for dark themes and adds a preference for lighter colors.
+    - Primary factor: Saturation * Value score (highest wins)
+    - Value >= 0.6 is critical (90% of selected colors)
+    - Luma between 30-130 (100% of selected colors with luma data)
+    - Prefer Saturation >= 0.4 (70% of selected colors)
+    - Coverage is NOT important (80% have low coverage)
+    - Hue difference from max coverage: avg 66°, median 74° (prefer different hues)
 
     Args:
         color_data: List of ColorData sorted by luminance (brightest to darkest).
@@ -325,62 +330,99 @@ def _select_vibrant_color(color_data: list[ColorData], theme: str) -> RGB:
     Returns:
         The selected vibrant RGB color.
     """
-    # Define ideal saturation and brightness ranges
-    TARGET_SATURATION = 0.6
-    SATURATION_WEIGHT = 0.5
-    COVERAGE_WEIGHT = 0.3
-    LUMA_WEIGHT = 0.2
+    # Filter criteria based on analysis
+    MIN_VALUE = 0.56  # Adjusted: WP 9 had V=0.56, most have V >= 0.6
+    MIN_LUMA = 30  # All selected colors have luma >= 30
+    MAX_LUMA = 130  # All selected colors have luma <= 130
+    PREFERRED_MIN_SATURATION = 0.4  # 70% of selected colors have S >= 0.4
 
-    min_luma = 60
-    max_luma = 180
+    # Find color with maximum coverage (dominant color)
+    max_coverage_color = max(color_data, key=lambda c: c.coverage)
+    max_coverage_hue = max_coverage_color.rgb.hsl.h * 360  # Convert to degrees
 
-    # Filter candidates based on theme
-    if theme == "dark":
-        # For dark themes, prefer brighter, but not extreme, colors.
-        candidates = color_data[1:-2]
-        candidates = [c for c in candidates if c.rgb.luma > min_luma]
-    else:  # Light theme
-        # For light themes, logic is same as V1.
-        candidates = color_data[3:-1]
-        candidates = [c for c in candidates if c.rgb.luma < max_luma]
+    def hue_distance(h1: float, h2: float) -> float:
+        """Calculate circular distance between two hues (0-360 degrees)."""
+        diff = abs(h1 - h2)
+        return min(diff, 360 - diff)
+
+    # Filter candidates: must have Value >= 0.56 and Luma in range
+    candidates = []
+    for color in color_data:
+        hsv = color.rgb.hsv
+        luma = color.rgb.luma
+
+        # Primary filter: Value and Luma must be in acceptable range
+        if hsv.v >= MIN_VALUE and MIN_LUMA <= luma <= MAX_LUMA:
+            candidates.append(color)
 
     if not candidates:
-        # Fallback: if filtering is too aggressive, use a wider slice and pick most saturated.
+        # Fallback: relax Value requirement further
         logging.warning(
             "No ideal vibrant color candidates found, using fallback logic."
         )
-        candidates = color_data[1:-1]
+        candidates = [
+            c
+            for c in color_data
+            if c.rgb.hsv.v >= 0.50 and MIN_LUMA <= c.rgb.luma <= MAX_LUMA
+        ]
+
+    if not candidates:
+        # Final fallback: use S*V score on all colors
+        candidates = color_data
         if not candidates:
             return color_data[len(color_data) // 2].rgb  # Absolute fallback
-        return max(candidates, key=lambda c: c.rgb.hsv.s * c.rgb.hsv.v).rgb
 
-    # Score candidates
+    # Score candidates using multiple factors
+    # Analysis showed 6/10 selected colors had highest S*V score
+    # Also: avg hue diff from max coverage = 66°, median = 74°
     scored_candidates = []
     for color in candidates:
         saturation = color.rgb.hsv.s
-        coverage = color.coverage
-        luma = color.rgb.luma
+        value = color.rgb.hsv.v
+        hue = color.rgb.hsl.h * 360  # Convert to degrees
 
-        # Score saturation based on distance from target
-        saturation_score = 1.0 - abs(saturation - TARGET_SATURATION)
-        score = (SATURATION_WEIGHT * saturation_score) + (COVERAGE_WEIGHT * coverage)
+        # Primary score: S * V (this is the strongest indicator)
+        primary_score = saturation * value
 
-        # Add luma score only for dark mode
-        if theme == "dark":
-            luma_score = (luma - min_luma) / (255 - min_luma)
-            score += LUMA_WEIGHT * luma_score
+        # Bonus for preferred saturation range (S >= 0.4)
+        saturation_bonus = 0.1 if saturation >= PREFERRED_MIN_SATURATION else 0.0
 
-        scored_candidates.append((score, color.rgb))
+        # Hue difference bonus: prefer colors different from max coverage color
+        # Analysis: avg diff = 66°, median = 74°
+        # Stronger bonus for medium distances (40-100°) to avoid similar hues
+        hue_diff = hue_distance(hue, max_coverage_hue)
+        if hue_diff < 15:
+            # Very close to max coverage: penalty (avoid similar colors)
+            hue_bonus = -0.10
+        elif 40 <= hue_diff <= 100:
+            # Optimal range: strong bonus for good contrast
+            hue_bonus = 0.10
+        elif 20 <= hue_diff < 40:
+            # Approaching optimal: gradual increase
+            hue_bonus = 0.05 * ((hue_diff - 20) / 20)
+        elif 100 < hue_diff <= 120:
+            # Still good but decreasing
+            hue_bonus = 0.10 * (1 - (hue_diff - 100) / 20)
+        else:
+            # Very far (>120°): small bonus
+            hue_bonus = 0.03
+
+        # Total score
+        total_score = primary_score + saturation_bonus + hue_bonus
+
+        scored_candidates.append((total_score, color.rgb))
 
     # Return the color with the highest score
     best_color = max(scored_candidates, key=lambda item: item[0])[1]
 
-    # Post-process to guarantee minimum vibrancy and avoid excessive saturation
+    # Post-process to guarantee minimum vibrancy
     final_saturation = best_color.hsv.s
     if final_saturation < 0.25:
         best_color = saturate(best_color, 1.5)  # Boost muted colors
     elif final_saturation > 0.85:
-        best_color = saturate(best_color, 0.8)  # Tone down electric colors
+        best_color = saturate(
+            best_color, 0.9
+        )  # Slightly tone down very saturated colors
 
     return best_color
 
