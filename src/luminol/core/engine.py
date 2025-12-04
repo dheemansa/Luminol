@@ -105,7 +105,9 @@ def export_palettes(config: Config):
         try:
             shutil.copy(src=source, dst=destination)
         except FileNotFoundError:
-            logging.exception("Destination not found: '%s'. Cannot export '%s'.", destination, app)
+            logging.exception(
+                "Destination not found: '%s'. Cannot export '%s'.", destination, app
+            )
         except Exception:
             logging.exception("Failed to copy '%s' to '%s'", source, destination)
 
@@ -194,7 +196,9 @@ def run_luminol(
 
     logging.info("Extracting colors...")
     extract_start = time.perf_counter()
-    color_data = extract_colors(image_path=image_path, num_colors=8, preset=quality, sort_by="luma")
+    color_data = extract_colors(
+        image_path=image_path, num_colors=8, preset=quality, sort_by="luma"
+    )
     if verbose:
         for col in color_data:
             logging.debug(
@@ -248,7 +252,9 @@ def run_luminol(
     export_palettes(config=config)
 
     palette_end_time = time.perf_counter()
-    logging.info("Palette creation and export took %s", palette_end_time - palette_start_time)
+    logging.info(
+        "Palette creation and export took %s", palette_end_time - palette_start_time
+    )
 
     # TODO: also make a tty reload similar to pywall
     print(tty_color_sequence(color_palette), end="")
