@@ -173,10 +173,11 @@ def _assign_fg(
                     amount=blend_ratio,
                 )
             else:
-                # Edge case: If optimization fails, use candidate as-is
-                # Post-processing can fix this
-                logging.warning("Could not achieve target contrast for primary fg")
-                primary = primary_candidate
+                # generates a bright, desaturated text color for dark backgrounds.
+                primary = blend(NEUTRAL_WHITE, bg_primary, 0.2)
+                logging.warning(
+                    "Could not achieve target contrast for primary fg, using white fallback"
+                )
 
         # Limit saturation to ensure it is close to whitish
         if primary.hsv.s > MAX_SATURATION_FG_PRIMARY:
@@ -312,7 +313,7 @@ def _assign_fg(
     return primary, secondary, tertiary
 
 
-def _select_vibrant_color(color_data: list[ColorData], theme: str) -> RGB:
+def _select_vibrant_color(color_data: list[ColorData]) -> tuple[ColorData, RGB]:
     """
     Selects the most suitable vibrant color for accents and key surfaces.
 
@@ -328,7 +329,9 @@ def _select_vibrant_color(color_data: list[ColorData], theme: str) -> RGB:
         theme: "dark" or "light".
 
     Returns:
-        The selected vibrant RGB color.
+        A tuple containing:
+        - The original ColorData object that was selected.
+        - The final, processed RGB color for the accent.
     """
     # Filter criteria based on analysis
     MIN_VALUE = 0.56  # Adjusted: WP 9 had V=0.56, most have V >= 0.6
@@ -370,7 +373,8 @@ def _select_vibrant_color(color_data: list[ColorData], theme: str) -> RGB:
         # Final fallback: use S*V score on all colors
         candidates = color_data
         if not candidates:
-            return color_data[len(color_data) // 2].rgb  # Absolute fallback
+            fallback_obj = color_data[len(color_data) // 2]
+            return fallback_obj, fallback_obj.rgb  # Absolute fallback
 
     # Score candidates using multiple factors
     # Analysis showed 6/10 selected colors had highest S*V score
@@ -410,36 +414,55 @@ def _select_vibrant_color(color_data: list[ColorData], theme: str) -> RGB:
         # Total score
         total_score = primary_score + saturation_bonus + hue_bonus
 
-        scored_candidates.append((total_score, color.rgb))
+        scored_candidates.append((total_score, color))
 
-    # Return the color with the highest score
-    best_color = max(scored_candidates, key=lambda item: item[0])[1]
+    # Return the color object with the highest score
+    best_color_obj = max(scored_candidates, key=lambda item: item[0])[1]
 
     # Post-process to guarantee minimum vibrancy
-    final_saturation = best_color.hsv.s
+    processed_rgb = best_color_obj.rgb
+    final_saturation = processed_rgb.hsv.s
     if final_saturation < 0.25:
-        best_color = saturate(best_color, 1.5)  # Boost muted colors
+        processed_rgb = saturate(processed_rgb, 1.5)  # Boost muted colors
     elif final_saturation > 0.85:
-        best_color = saturate(
-            best_color, 0.9
+        processed_rgb = saturate(
+            processed_rgb, 0.9
         )  # Slightly tone down very saturated colors
 
-    return best_color
+    return best_color_obj, processed_rgb
 
 
-def _derive_secondary_accent(accent_primary: RGB, theme: str) -> RGB:
+def _assign_accents(color_data: list[ColorData], theme: str) -> tuple[RGB, RGB]:
     """
-    Derives a secondary accent color from the primary accent.
-    Used for hover states, focus rings, etc.
+    Selects a primary and a secondary accent color from the color data.
+
+    It works by first selecting the most vibrant color as the primary accent.
+    Then, it removes that color from the list and selects the next most
+    vibrant color as the secondary accent.
+
+    Args:
+        color_data: List of ColorData sorted by luminance.
+        theme: "dark" or "light".
+
+    Returns:
+        A tuple containing (primary_accent, secondary_accent).
     """
-    if theme == "dark":
-        # Make it brighter and slightly more saturated for pop
-        brighter_accent = brighten(accent_primary, 1.2)
-        secondary = saturate(brighter_accent, 1.1)
-    else:  # Light theme
-        # Make it slightly darker for subtle differentiation
-        secondary = brighten(accent_primary, 0.9)
-    return secondary
+    # Select the primary accent.
+    primary_accent_obj, primary_accent = _select_vibrant_color(color_data)
+
+    # Create a new list of colors excluding the one that was just picked.
+    # A copy is made to avoid modifying the original list.
+    remaining_colors = [c for c in color_data if c != primary_accent_obj]
+
+    # Select the secondary accent from the remaining colors.
+    # We only need the processed RGB, so we discard the object.
+    if not remaining_colors:
+        # Fallback: if list is empty, derive from primary (old logic)
+        secondary_accent = brighten(primary_accent, 1.2 if theme == "dark" else 0.9)
+    else:
+        _, secondary_accent = _select_vibrant_color(remaining_colors)
+
+    return primary_accent, secondary_accent
 
 
 def _assign_border(accent_primary: RGB, bg_primary: RGB) -> tuple[RGB, RGB]:
