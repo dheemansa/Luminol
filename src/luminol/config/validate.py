@@ -24,6 +24,7 @@ ERR = AnsiColors.ERROR
 RESET = AnsiColors.RESET
 
 SUPPORTED_THEME_TYPES = ("auto", "light", "dark")
+SUPPORTED_TERMINAL_COLOR_STYLE = ("default", "pywal")
 
 # [global] schema
 GLOBAL_SCHEMA = {
@@ -33,6 +34,7 @@ GLOBAL_SCHEMA = {
     "use-shell": {"type": bool},
     "log-output": {"type": bool},
     "tty-reload": {"type": bool},
+    "terminal-color-style": {"type": str, "allowed": SUPPORTED_TERMINAL_COLOR_STYLE},
 }
 
 # Schema for application

@@ -107,7 +107,8 @@ class GlobalSettings:
     theme_type: str = "auto"
     use_shell: bool = False
     log_output: bool = False
-    tty_reload: bool = False
+    tty_reload: bool = True
+    terminal_color_style: str = "default"
 
     @classmethod
     def from_dict(cls, data: dict) -> "GlobalSettings":
@@ -119,6 +120,7 @@ class GlobalSettings:
             use_shell=data.get("use-shell", False),
             log_output=data.get("log-output", False),
             tty_reload=data.get("tty-reload", True),
+            terminal_color_style=data.get("terminal-color-style", "default"),
         )
 
 
