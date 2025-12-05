@@ -81,7 +81,7 @@ def generate_ansi(
     Returns:
         Dictionary with theme colors
     """
-    accent = _select_vibrant_color(color_data, "dark")
+    _, accent = _select_vibrant_color(color_data)
     bright_lightness = max(assigned_colors.values(), key=lambda col: col.hsl.l).hsl.l
     saturation = accent.hsl.s if accent.hsl.s > 0.3 else 0.4
 
