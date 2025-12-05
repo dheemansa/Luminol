@@ -3,7 +3,8 @@ from pathlib import Path
 import shutil
 import time
 
-from ..cli.term_colors import AnsiColors, tty_color_sequence, preview_theme
+from ..cli.term_colors import AnsiColors, preview_theme, show_terminal_colors
+from ..core.tty_reload import reload_tty_and_save_sequence
 from ..utils.logging_config import configure_logging
 from ..color.color_assign import assign_color
 from ..color.extraction import extract_colors
@@ -251,13 +252,28 @@ def run_luminol(
     ## final export to output_dir
     export_palettes(config=config)
 
+    if config.global_settings.tty_reload:
+        sequence_file = LUMINOL_CACHE_DIR / "sequence"
+        style = config.global_settings.terminal_color_style
+        if style == "pywal":
+            color_data = extract_colors(
+                image_path=image_path, num_colors=16, preset=quality, sort_by="luma"
+            )
+
+        reload_tty_and_save_sequence(
+            color_data,
+            assigned_dict=color_palette,
+            style=style,
+            sequence_file=sequence_file,
+        )
+
+    show_terminal_colors()
+
     palette_end_time = time.perf_counter()
     logging.info(
         "Palette creation and export took %s", palette_end_time - palette_start_time
     )
 
-    # TODO: also make a tty reload similar to pywall
-    print(tty_color_sequence(color_palette), end="")
     reload_commands(config=config, log_dir=log_dir)
 
     if log_dir:
