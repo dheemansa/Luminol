@@ -121,6 +121,7 @@ def set_wallpaper(config: Config, image_path: str | Path, log_dir: None | str | 
                 wallpaper_set_command=cmd,
                 image_path=image_path,
                 log_dir=log_dir,
+                use_shell=config.global_settings.use_shell,
             )
         except WallpaperSetError:
             logging.exception("Wallpaper command: '%s' failed", cmd)
