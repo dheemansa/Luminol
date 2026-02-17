@@ -122,6 +122,7 @@ def apply_wallpaper(
     wallpaper_set_command: str,
     image_path: str | Path,
     log_dir: str | Path | None = None,
+    use_shell=False,
 ) -> None:
     """
     Apply a wallpaper by executing the configured command.
@@ -144,7 +145,9 @@ def apply_wallpaper(
     logging.debug("Executing wallpaper command: %s", final_command)
 
     try:
-        _run_detached_command(command=final_command, log_dir=log_dir, use_shell=False)
+        _run_detached_command(
+            command=final_command, log_dir=log_dir, use_shell=use_shell
+        )
         truncated_command = _truncate_string(final_command)
         logging.info("Wallpaper command executed: %s", truncated_command)
 
