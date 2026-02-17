@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "luminol"
-version = "0.1.0"
+version = "0.1.0a1"
 description = "Color palette generator and theme exporter"
 authors = [{ name = "dheemansa", email = "dheemansa2007@gmail.com" }]
 license = "GPL-3.0"
+requires-python = ">=3.11"
 
 dependencies = ["pillow", "numpy"]
 
